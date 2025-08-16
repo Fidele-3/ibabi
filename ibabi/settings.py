@@ -12,7 +12,8 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "fallback-secret")
 DEBUG = os.environ.get("DEBUG", "False") == "True"
 
 DEBUG = True  # Set to False in production
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "").split(",")
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost").split(",")
+ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS if host.strip()]
 
 #ALLOWED_HOSTS = ['http://10.0.2.2', '10.0.2.2', '127.0.0.1', 'localhost:8000', 'localhost']
 
