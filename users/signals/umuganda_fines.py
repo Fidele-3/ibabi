@@ -3,10 +3,10 @@ from django.dispatch import receiver
 from django.utils.timezone import now
 from users.models.customuser import CustomUser
 from users.models.userprofile import UserProfile
-from umuganda.models import CellUmugandaSession, Attendance, Fine
+from ibabi.models import CellibabiSession, Attendance, Fine
 
-@receiver(post_save, sender=CellUmugandaSession)
-def assign_fines_to_absentees(sender, instance: CellUmugandaSession, created, **kwargs):
+@receiver(post_save, sender=CellibabiSession)
+def assign_fines_to_absentees(sender, instance: CellibabiSession, created, **kwargs):
   
     if instance.sector_session.date >= now().date():
         return
@@ -46,6 +46,6 @@ def assign_fines_to_absentees(sender, instance: CellUmugandaSession, created, **
                 session=instance,
                 defaults={
                     'amount': instance.fines_policy,
-                    'reason': 'Absent from Umuganda session',
+                    'reason': 'Absent from ibabi session',
                 }
             )

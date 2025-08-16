@@ -1,6 +1,6 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from umuganda.models import Fine
+from ibabi.models import Fine
 from users.tasks .send_fine_created_notification import send_fine_created_notification
 
 @receiver(post_save, sender=Fine)

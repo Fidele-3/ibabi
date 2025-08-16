@@ -3,7 +3,7 @@ from django.db import models
 from users.models.addresses import Sector
 from payment.models.payment_provider import PaymentProvider
 from users.models.customuser import CustomUser
-from umuganda.models.fine import Fine
+
 
 
 
@@ -12,8 +12,7 @@ class PaymentTransaction(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='payment_transactions')
-    fine = models.OneToOneField(Fine, on_delete=models.CASCADE, related_name='transaction')
-    provider = models.ForeignKey(PaymentProvider, on_delete=models.SET_NULL, null=True, blank=True)
+   
     
     amount = models.DecimalField(max_digits=8, decimal_places=2)
     status = models.CharField(max_length=10, choices=[

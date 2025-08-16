@@ -6,7 +6,7 @@ class AdminHierarchy(models.Model):
         CustomUser,
         on_delete=models.CASCADE,
         related_name='admins_added',
-        limit_choices_to={'user_level__in': ['super_admin', 'sector_officer']},
+        limit_choices_to={'user_level__in': ['super_admin', 'district_officer']},
         help_text="The admin who added this admin"
     )
     admin = models.OneToOneField(
@@ -45,10 +45,10 @@ class AdminActionLog(models.Model):
             ("password_reset_requested", "Password Reset Requested"),
             ("password_reset_successful", "Password Reset Successful"),
             ("sector_created", "Sector Created"),
-            ("umuganda_created", "Umuganda Activity Created"),
-            ("umuganda_edited", "Umuganda Activity Edited"),
-            ("umuganda_deleted", "Umuganda Activity Deleted"),
-            ("assignment_made", "Officer Assigned to Umuganda"),
+            ("ibabi_created", "ibabi Activity Created"),
+            ("ibabi_edited", "ibabi Activity Edited"),
+            ("ibabi_deleted", "ibabi Activity Deleted"),
+            ("assignment_made", "Officer Assigned to ibabi"),
             ("other", "Other"),
         ],
         default="other",

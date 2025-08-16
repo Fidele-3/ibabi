@@ -5,7 +5,7 @@ from django.conf import settings
 from django.utils import timezone
 from users.models.notification import Notification
 from users.models.customuser import CustomUser
-from umuganda.models import UmugandaSession
+from ibabi.models import ibabiSession
 import logging
 from datetime import timedelta
 
@@ -17,9 +17,9 @@ def send_sms(phone_number: str, message: str) -> bool:
     return True
 
 @shared_task(bind=True, max_retries=3)
-def send_umuganda_notifications(self, session_id=None):
+def send_ibabi_notifications(self, session_id=None):
     """
-    Send notifications for upcoming Umuganda sessions.
+    Send notifications for upcoming ibabi sessions.
 
     - If session_id given, notify only that session.
     - Otherwise notify all sessions within next 3 days (including today).
@@ -30,15 +30,15 @@ def send_umuganda_notifications(self, session_id=None):
 
     if session_id:
         try:
-            sessions = [UmugandaSession.objects.get(id=session_id)]
-            logger.info(f"[UmugandaNotification] Sending notification for session id: {session_id}")
-        except UmugandaSession.DoesNotExist:
-            logger.error(f"[UmugandaNotification] Session id {session_id} not found.")
+            sessions = [ibabiSession.objects.get(id=session_id)]
+            logger.info(f"[ibabiNotification] Sending notification for session id: {session_id}")
+        except ibabiSession.DoesNotExist:
+            logger.error(f"[ibabiNotification] Session id {session_id} not found.")
             return {"error": "Session not found"}
     else:
         # Filter sessions from today up to 3 days ahead inclusive
         max_date = today + timedelta(days=3)
-        sessions = UmugandaSession.objects.filter(
+        sessions = ibabiSession.objects.filter(
             date__gte=today,
             date__lte=max_date,
             sector__isnull=False,
@@ -46,10 +46,10 @@ def send_umuganda_notifications(self, session_id=None):
         ).order_by('date')
 
         count = sessions.count()
-        logger.info(f"[UmugandaNotification] Found {count} upcoming sessions between {today} and {max_date}")
+        logger.info(f"[ibabiNotification] Found {count} upcoming sessions between {today} and {max_date}")
 
         if count == 0:
-            logger.info("[UmugandaNotification] No upcoming sessions with sector and cell to notify.")
+            logger.info("[ibabiNotification] No upcoming sessions with sector and cell to notify.")
             return {"sessions_notified": 0, "emails_sent": 0, "sms_sent": 0}
 
     sent_emails = 0
@@ -58,7 +58,7 @@ def send_umuganda_notifications(self, session_id=None):
     for session in sessions:
         # Defensive check: skip if mandatory fields missing (should be covered by queryset)
         if not (session.sector and session.cell):
-            logger.warning(f"[UmugandaNotification] Skipping session {session.id} due to missing sector or cell.")
+            logger.warning(f"[ibabiNotification] Skipping session {session.id} due to missing sector or cell.")
             continue
 
         # Find active citizen users whose profile cell and sector match the session
@@ -70,7 +70,7 @@ def send_umuganda_notifications(self, session_id=None):
         )
 
         user_count = users.count()
-        logger.info(f"[UmugandaNotification] Session {session.id} on {session.date} has {user_count} users to notify.")
+        logger.info(f"[ibabiNotification] Session {session.id} on {session.date} has {user_count} users to notify.")
 
         if user_count == 0:
             continue
@@ -88,10 +88,10 @@ def send_umuganda_notifications(self, session_id=None):
         }
 
         for user in users:
-            subject = "Upcoming Umuganda Activity Scheduled"
+            subject = "Upcoming ibabi Activity Scheduled"
             message = (
                 f"Dear {user.full_names},\n\n"
-                f"There is an Umuganda activity scheduled on {session.date.strftime('%Y-%m-%d')} "
+                f"There is an ibabi activity scheduled on {session.date.strftime('%Y-%m-%d')} "
                 f"in your sector {session.sector.name} and cell {session.cell.name}.\n\n"
                 f"Details: {session_context['description']}\n\n"
                 "Please participate actively.\n\n"
@@ -116,8 +116,8 @@ def send_umuganda_notifications(self, session_id=None):
                     "support_email": getattr(settings, "DEFAULT_SUPPORT_EMAIL", "support@example.com"),
                 }
 
-                text_content = render_to_string("emails/umuganda_notification.txt", context)
-                html_content = render_to_string("emails/umuganda_notification.html", context)
+                text_content = render_to_string("emails/ibabi_notification.txt", context)
+                html_content = render_to_string("emails/ibabi_notification.html", context)
 
                 from_email = settings.DEFAULT_FROM_EMAIL
                 email_msg = EmailMultiAlternatives(subject, text_content, from_email, [user.email])
@@ -131,10 +131,10 @@ def send_umuganda_notifications(self, session_id=None):
                 email_notif.save()
                 sent_emails += 1
 
-                logger.info(f"[UmugandaNotification] Email sent to {user.email}")
+                logger.info(f"[ibabiNotification] Email sent to {user.email}")
 
             except Exception as e:
-                logger.error(f"[UmugandaNotification] Failed to send email to {user.email}: {e}")
+                logger.error(f"[ibabiNotification] Failed to send email to {user.email}: {e}")
                 if email_notif:
                     email_notif.is_sent = False
                     email_notif.save()
@@ -156,13 +156,13 @@ def send_umuganda_notifications(self, session_id=None):
                     )
                     if sms_sent:
                         sent_sms += 1
-                        logger.info(f"[UmugandaNotification] SMS sent to {user.phone_number}")
+                        logger.info(f"[ibabiNotification] SMS sent to {user.phone_number}")
                     else:
-                        logger.warning(f"[UmugandaNotification] Failed to send SMS to {user.phone_number}")
+                        logger.warning(f"[ibabiNotification] Failed to send SMS to {user.phone_number}")
                 else:
-                    logger.warning(f"[UmugandaNotification] User {user.id} has no phone number; skipping SMS.")
+                    logger.warning(f"[ibabiNotification] User {user.id} has no phone number; skipping SMS.")
             except Exception as e:
-                logger.error(f"[UmugandaNotification] Error sending SMS to user {user.id}: {e}")
+                logger.error(f"[ibabiNotification] Error sending SMS to user {user.id}: {e}")
                 if sms_notif:
                     sms_notif.is_sent = False
                     sms_notif.save()

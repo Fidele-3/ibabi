@@ -26,14 +26,18 @@ class UserProfile(models.Model):
     date_of_birth = models.DateField(blank=True, null=True)
     work = models.CharField(max_length=50, null=True, blank=True)
     work_description = models.TextField(null=True)
-    assigned_sector = models.ForeignKey('sector.AdminSector', on_delete=models.SET_NULL, null=True, blank=True, related_name='staff_members')
     province= models.ForeignKey(Province, on_delete=models.CASCADE, blank=False, null=True)
     district = models.ForeignKey(District, on_delete=models.CASCADE, blank=False, null=True)
     sector = models.ForeignKey(Sector, on_delete=models.CASCADE,blank=False, null=True)
     cell = models.ForeignKey(Cell, on_delete=models.CASCADE,null=True, blank=False)
     village = models.ForeignKey(Village, on_delete=models.CASCADE,blank=False, null=True)
     website = models.URLField(blank=True, null=True)
-
+    profile_picture = models.ImageField(
+        upload_to='profile_pictures/',
+        default='profile_pictures/default.jpg',
+        blank=True,
+        null=True
+    )
     created_at = models.DateTimeField(auto_now_add=True, null=True)
     updated_at = models.DateTimeField(auto_now=True, null=True)
 
@@ -44,3 +48,15 @@ class UserProfile(models.Model):
         verbose_name = 'User Profile'
         verbose_name_plural = 'User Profiles'
         ordering = ['-created_at']
+
+
+class Seller(models.Model):
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    assigned_cell = models.ManyToManyField(Cell, blank=True)
+    farm_name = models.CharField(max_length=255, blank=True, null=True)
+    license_number = models.CharField(max_length=100, blank=True, null=True)
+
+class Buyer(models.Model):
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    assigned_cell = models.ManyToManyField(Cell, blank=True)
+    delivery_address = models.TextField(blank=True, null=True)

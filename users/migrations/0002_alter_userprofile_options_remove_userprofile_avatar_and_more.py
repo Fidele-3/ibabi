@@ -11,7 +11,6 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("auth", "0012_alter_user_first_name_max_length"),
-        ("sector", "0001_initial"),
         ("users", "0001_initial"),
     ]
 
@@ -204,17 +203,7 @@ class Migration(migrations.Migration):
                         to=settings.AUTH_USER_MODEL,
                     ),
                 ),
-                (
-                    "sector",
-                    models.ForeignKey(
-                        blank=True,
-                        help_text="If set, this notification is directed to the entire sector",
-                        null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="notifications",
-                        to="sector.adminsector",
-                    ),
-                ),
+                
                 (
                     "triggered_by",
                     models.ForeignKey(

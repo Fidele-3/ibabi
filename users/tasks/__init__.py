@@ -1,0 +1,1 @@
+from users.tasks.fetch_climate_data import fetch_24h_forecast, fetch_past_3months_data 

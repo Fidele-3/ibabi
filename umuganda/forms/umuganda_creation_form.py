@@ -1,10 +1,10 @@
 from django import forms
-from umuganda.models import UmugandaSession
+from ibabi.models import ibabiSession
 from datetime import date as dt, timedelta
 
-class UmugandaSessionForm(forms.ModelForm):
+class ibabiSessionForm(forms.ModelForm):
     class Meta:
-        model = UmugandaSession
+        model = ibabiSession
         fields = ['date']
         widgets = {
             'date': forms.DateInput(attrs={'type': 'date'}),
@@ -21,11 +21,11 @@ class UmugandaSessionForm(forms.ModelForm):
             return date
 
         if date < dt.today():
-            raise forms.ValidationError("Umuganda date cannot be in the past.")
+            raise forms.ValidationError("ibabi date cannot be in the past.")
 
         if self.sector:
             recent_session = (
-                UmugandaSession.objects
+                ibabiSession.objects
                 .filter(sector=self.sector)
                 .order_by('-date')
                 .first()
@@ -35,7 +35,7 @@ class UmugandaSessionForm(forms.ModelForm):
                 days_since_last = (date - recent_session.date).days
                 if days_since_last < 29:
                     raise forms.ValidationError(
-                        f"An Umuganda was already scheduled on {recent_session.date}. "
+                        f"An ibabi was already scheduled on {recent_session.date}. "
                         f"You must wait at least 29 days before assigning a new one."
                     )
 

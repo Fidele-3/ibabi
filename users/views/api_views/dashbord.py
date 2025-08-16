@@ -7,12 +7,12 @@ from django.utils.timezone import now
 from users.serializer.dashbord_serializer import (
     CustomUserSerializer,
     UserProfileSerializer,
-    CellUmugandaSessionSerializer,
+    CellibabiSessionSerializer,
     AttendanceSerializer,
     FineSerializer
 )
 
-from umuganda.models import CellUmugandaSession, Attendance, Fine
+from ibabi.models import CellibabiSession, Attendance, Fine
 
 logger = logging.getLogger(__name__)
 
@@ -43,14 +43,14 @@ class CitizenDashboardView(APIView):
 
         # Fetch upcoming sessions
         today = now().date()
-        sessions_qs = CellUmugandaSession.objects.filter(
+        sessions_qs = CellibabiSession.objects.filter(
             cell_id=profile.cell_id,
             sector_session__date__gte=today
         ).order_by('sector_session__date')
         logger.info(f"Found {sessions_qs.count()} upcoming sessions for cell {profile.cell_id}")
         print(f"[LOG] Upcoming sessions count: {sessions_qs.count()}")
 
-        sessions = CellUmugandaSessionSerializer(sessions_qs, many=True).data or []
+        sessions = CellibabiSessionSerializer(sessions_qs, many=True).data or []
         logger.debug(f"Serialized {len(sessions)} sessions")
 
         # Fetch past attendance

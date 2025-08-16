@@ -2,8 +2,6 @@ from django.db import models
 from django.utils import timezone
 from users.models.customuser import CustomUser
 
-from sector.models.sector import AdminSector
-
 class Notification(models.Model):
     NOTIFICATION_TYPE_CHOICES = [
         ("in_app", "In-App"),
@@ -15,13 +13,6 @@ class Notification(models.Model):
         CustomUser, on_delete=models.CASCADE,
         related_name="notifications", null=True, blank=True,
         help_text="User receiving this notification"
-    )
-    sector = models.ForeignKey(
-        AdminSector,
-        on_delete=models.CASCADE,
-        related_name="notifications",
-        null=True, blank=True,
-        help_text="If set, this notification is directed to the entire sector"
     )
 
     triggered_by = models.ForeignKey(

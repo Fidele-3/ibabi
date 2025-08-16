@@ -1,4 +1,4 @@
 from .attendance import Attendance
 from .fine import Fine
-from .umugandasession import UmugandaSession, CellUmugandaSession
+from .ibabisession import ibabiSession, CellibabiSession
 from .feedback import Feedback

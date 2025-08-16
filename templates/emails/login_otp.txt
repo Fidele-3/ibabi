@@ -1,0 +1,9 @@
+Hi {{ full_names }},
+
+Your OTP code for login is: {{ otp_code }}
+
+Please use this code to complete your login process.
+
+If you did not request this, please ignore this email.
+
+Thank you.

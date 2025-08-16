@@ -20,7 +20,7 @@ def send_account_created_email(self, user_id):
             return
 
         # Message content
-        subject = "🎉 Welcome to Umuganda!"
+        subject = "🎉 Welcome to ibabi!"
         message = f"Hello {user.full_names}, your account has been successfully created."
 
         # === In-App Notification ===

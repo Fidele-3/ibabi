@@ -1,6 +1,6 @@
 Dear {{ full_names }},
 
-You have an upcoming Umuganda activity scheduled:
+You have an upcoming ibabi activity scheduled:
 
 Date: {{ session.date|date:"F j, Y" }}
 Location: 
@@ -22,6 +22,6 @@ Please participate actively in this community activity. Your participation helps
 If you have any questions, please contact your local authorities or reply to this email.
 
 Thank you for your cooperation,
-The Umuganda Management Team
+The ibabi Management Team
 
 {{ support_email }}

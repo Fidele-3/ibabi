@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from umuganda.models import Fine
+from ibabi.models import Fine
 from users.models.userprofile import UserProfile  
 class UserProfileMiniSerializer(serializers.ModelSerializer):
     class Meta:

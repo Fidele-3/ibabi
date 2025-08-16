@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-from umuganda.models import UmugandaSession, Fine
+from ibabi.models import ibabiSession, Fine
 
 class Feedback(models.Model):
     FEEDBACK_TYPE_CHOICES = [
@@ -11,7 +11,7 @@ class Feedback(models.Model):
     ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='feedbacks')
-    session = models.ForeignKey(UmugandaSession, null=True, blank=True, on_delete=models.SET_NULL, related_name='feedbacks')
+    session = models.ForeignKey(ibabiSession, null=True, blank=True, on_delete=models.SET_NULL, related_name='feedbacks')
     fine = models.ForeignKey(Fine, null=True, blank=True, on_delete=models.SET_NULL, related_name='feedbacks')
     feedback_type = models.CharField(max_length=20, choices=FEEDBACK_TYPE_CHOICES)
     message = models.TextField()

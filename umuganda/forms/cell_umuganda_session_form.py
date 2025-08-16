@@ -1,10 +1,10 @@
 from django import forms
-from umuganda.models import CellUmugandaSession
+from ibabi.models import CellibabiSession
 from users.models.addresses import Village
 
-class CellUmugandaSessionForm(forms.ModelForm):
+class CellibabiSessionForm(forms.ModelForm):
     class Meta:
-        model = CellUmugandaSession
+        model = CellibabiSession
         fields = ['village', 'tools_needed', 'description', 'fines_policy']
         widgets = {
             'tools_needed': forms.Textarea(attrs={'rows': 2}),

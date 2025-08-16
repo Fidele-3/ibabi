@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.conf import settings
 from users.models.customuser import CustomUser
 from users.models.notification import Notification
-from umuganda.models import Fine
+from ibabi.models import Fine
 import logging
 
 logger = logging.getLogger(__name__)
@@ -22,10 +22,10 @@ def send_fine_created_notification(self, fine_id):
             return
 
         
-        subject = "⚠️ New Umuganda Fine Issued"
+        subject = "⚠️ New ibabi Fine Issued"
         message = (
             f"Hello {user.full_names},\n\n"
-            f"You have been fined {fine.amount} RWF for missing the Umuganda session on {fine.session.date}.\n"
+            f"You have been fined {fine.amount} RWF for missing the ibabi session on {fine.session.date}.\n"
             f"Reason: {fine.reason}\n\n"
             f"Please pay before the due date or contact your local authority."
         )
