@@ -41,7 +41,7 @@ class IsAdminOrReadOnly(BasePermission):
             "sector_officer",
             "cell_officer",
         ]
-        return user.user_level in admin_levels
+        return str(user.user_level).lower() in [level.lower() for level in admin_levels]
 
 
 class FarmerIssueViewSet(viewsets.ModelViewSet):
@@ -50,6 +50,11 @@ class FarmerIssueViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = FarmerIssue.objects.all()
+
+        # Allow filtering by specific issue ID from query params if provided
+        issue_id = self.request.query_params.get("issue_id")
+        if issue_id:
+            queryset = queryset.filter(id=issue_id)
 
         # Filters
         year = self.request.query_params.get("year")
@@ -116,6 +121,12 @@ class FarmerIssueViewSet(viewsets.ModelViewSet):
             return Response(queryset)
 
         return super().list(request, *args, **kwargs)
+
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Get a single issue by its ID (pk).
+        """
+        return super().retrieve(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         serializer.save(farmer=self.request.user)

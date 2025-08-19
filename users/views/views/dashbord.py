@@ -413,7 +413,7 @@ class RoleAwareDashboard(APIView):
             val=Coalesce(Sum("quantity_added"), 0.0, output_field=FloatField())
         )["val"]
 
-        district_inv_remaining = sum((obj.quantity_remaining for obj in dist_inv_qs), 0.0)
+        district_inv_remaining = sum((obj.quantity_remaining for obj in dist_inv_qs), Decimal(0))
 
         cell_inv_qs = self._apply_scope(CellInventory.objects.all(), scope, model=CellInventory)
         cell_inventories = cell_inv_qs.count()

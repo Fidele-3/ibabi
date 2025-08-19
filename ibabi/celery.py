@@ -1,8 +1,10 @@
 import os
 import ssl
 import sys
+import logging
 from celery import Celery
 from celery.schedules import crontab
+from celery.signals import before_task_publish, task_prerun
 from django.conf import settings
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ibabi.settings")
@@ -47,17 +49,34 @@ try:
     app.conf.beat_schedule = {
         'fetch_24h_forecast_hourly': {
             'task': 'users.tasks.fetch_climate_data.fetch_24h_forecast',
-            'schedule': crontab(minute=0, hour='1', day_of_week='mon'),  # every Monday 1AM
+            'schedule': crontab(minute=0, hour='1', day_of_week='mon'),
         },
         'fetch_past_3months_weekly': {
             'task': 'users.tasks.fetch_climate_data.fetch_past_3months_data',
-            'schedule': crontab(minute=0, hour='1', day_of_week='mon'),  # every Monday 1AM
+            'schedule': crontab(minute=0, hour='1', day_of_week='mon'),
         },
     }
 
     print("📅 Celery Beat schedule configured", flush=True)
 except Exception as e:
     print(f"❌ Failed to configure beat schedule: {e}", file=sys.stderr, flush=True)
+
+# -------------------
+# Log task args automatically
+# -------------------
+
+logger = logging.getLogger("celery")
+
+@before_task_publish.connect
+def log_task_sent(sender=None, body=None, **kwargs):
+    # body contains 'args' and 'kwargs'
+    args = body.get("args", [])
+    kw = body.get("kwargs", {})
+    logger.info(f"📤 Task {sender} sent with args={args} kwargs={kw}")
+
+@task_prerun.connect
+def log_task_prerun(task_id=None, task=None, args=None, kwargs=None, **other):
+    logger.info(f"▶️ Task {task.name}[{task_id}] starting with args={args} kwargs={kwargs}")
 
 # Final log to confirm full load
 print("✅ Celery app setup complete!", flush=True)

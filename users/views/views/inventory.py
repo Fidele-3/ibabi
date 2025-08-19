@@ -30,16 +30,16 @@ class IsSuperAdminSafeOnly(permissions.BasePermission):
 
 
 class DistrictInventoryViewSets(viewsets.ModelViewSet):
-    queryset = DistrictInventory.objects.all()  # ✅ make sure imported correctly
+    queryset = DistrictInventory.objects.all()
     serializer_class = DistrictInventorySerializer
     permission_classes = [IsAuthenticated, IsSuperAdminSafeOnly]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['district', 'product']  # ✅ these exist on model
+    filterset_fields = ['district', 'product']
 
     def get_queryset(self):
         user = self.request.user
         qs = super().get_queryset()
-        
+
         if user.user_level == 'super_admin':
             return qs
 
@@ -51,7 +51,6 @@ class DistrictInventoryViewSets(viewsets.ModelViewSet):
 
         return qs.none()
 
-
     def perform_create(self, serializer):
         user = self.request.user
         if user.user_level == 'district_officer':
@@ -59,9 +58,8 @@ class DistrictInventoryViewSets(viewsets.ModelViewSet):
             if not managed_district:
                 raise PermissionDenied("You do not have a managed district assigned.")
 
-            # Override district from user; ignore client input for district
+            # Use serializer's create method which now aggregates existing inventory
             serializer.save(district=managed_district)
-
         else:
             raise PermissionDenied("Only district officers can create district inventories.")
 
@@ -72,6 +70,7 @@ class DistrictInventoryViewSets(viewsets.ModelViewSet):
             if serializer.instance.district != managed_district:
                 raise PermissionDenied("You can only update inventory in your managed district.")
         serializer.save()
+
 
 
 class CellInventoryViewSets(viewsets.ReadOnlyModelViewSet):
@@ -104,12 +103,24 @@ class CellInventoryViewSets(viewsets.ReadOnlyModelViewSet):
 
 class CellResourceRequestSerializer(serializers.ModelSerializer):
     cell = serializers.PrimaryKeyRelatedField(read_only=True)  # cell is read-only
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    cell_name = serializers.CharField(source='cell.name', read_only=True)
+    requester_name = serializers.CharField(source='cell.cell_officer.get_full_name', read_only=True)
+    quantity = serializers.DecimalField(
+        source='quantity_requested',
+        max_digits=10,
+        decimal_places=2,
+        min_value=0,
+        required=True
+    )
+
 
     class Meta:
         model = CellResourceRequest
         fields = [
-            'id', 'cell', 'product', 'quantity_requested', 'status',
-            'request_date', 'approved_by', 'delivery_date', 'comment'
+            'id', 'cell', 'product', 'quantity', 'status',
+            'request_date', 'approved_by', 'delivery_date', 'comment',
+            'product_name', 'cell_name', 'requester_name'
         ]
         read_only_fields = ['status', 'request_date', 'approved_by', 'delivery_date', 'cell']
 

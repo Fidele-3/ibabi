@@ -14,10 +14,16 @@ from report.models import (
 from users.models import CustomUser
 from report.models import Land
 
+from rest_framework import serializers
+
 class DistrictInventorySerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
     district_name = serializers.CharField(source="district.name", read_only=True)
-    quantity_available = serializers.SerializerMethodField()  # expose property as a field
+    
+    # Expose all relevant quantities
+    quantity_remaining = serializers.SerializerMethodField()
+    quantity_at_cell = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    quantity_remaining_at_cells = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
 
     class Meta:
         model = DistrictInventory
@@ -27,15 +33,15 @@ class DistrictInventorySerializer(serializers.ModelSerializer):
             "district_name",
             "product",
             "product_name",
-            "quantity_available",
+            "quantity_remaining",           # remaining in district
+            "quantity_at_cell",             # allocated to cells
+            "quantity_remaining_at_cells",  # remaining at cells after farmer allocations
             "updated_at",
         ]
-        read_only_fields = ["id", "updated_at"]
+        read_only_fields = ["id", "updated_at", "quantity_at_cell", "quantity_remaining_at_cells"]
 
-    def get_quantity_available(self, obj):
-        return obj.quantity_remaining  # map to model property
-
-
+    def get_quantity_remaining(self, obj):
+        return obj.quantity_remaining
 
 class CellInventorySerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
@@ -82,6 +88,8 @@ class ResourceRequestSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
     phone_number = serializers.CharField(source='farmer.phone_number', read_only=True)
     approved_admin = serializers.CharField(source='approved_by.get_full_name', read_only=True)
+    land_size = serializers.CharField(source='land.size_hectares', read_only=True)
+    land_upi = serializers.CharField(source='land.upi', read_only=True)
 
     # Non-blocking messages
     warnings = serializers.ListField(child=serializers.CharField(), read_only=True)
@@ -92,12 +100,12 @@ class ResourceRequestSerializer(serializers.ModelSerializer):
             "id", "farmer", "land", "product", "quantity_requested",
             "price_per_unit", "total_price", "status", "request_date",
             "approved_by", "delivery_date", "farmer_name", "product_name",
-            "phone_number", "comment", "approved_admin", "warnings"
+            "phone_number", "comment", "approved_admin", "warnings", "land_size", "land_upi"
         ]
         read_only_fields = [
             "id", "price_per_unit", "total_price", "status", "request_date",
             "approved_by", "delivery_date", "farmer_name", "product_name",
-            "phone_number", "comment", "approved_admin", "warnings"
+            "phone_number", "comment", "approved_admin", "warnings", "land_size", "land_upi"
         ]
 
     def validate_quantity_requested(self, value):
@@ -275,36 +283,32 @@ class ResourceRequestSerializer(serializers.ModelSerializer):
 
 
 class ResourceRequestStatusUpdateSerializer(serializers.Serializer):
-    status = serializers.ChoiceField(choices=[("approved","approved"), ("rejected","rejected"), ("delivered","delivered")])
+    status = serializers.ChoiceField(
+        choices=[("approved", "approved"), ("rejected", "rejected"), ("delivered", "delivered")]
+    )
     comment = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     def validate(self, data):
         request_obj = self.context["request_obj"]
         request = self.context.get("request")
-        
-        # Enforce 'status' is present if method is PATCH or PUT (update)
+
         if request and request.method in ("PATCH", "PUT") and "status" not in data:
             raise serializers.ValidationError({"status": "This field is required for updates."})
 
         new_status = data.get("status")
-        if new_status is None:
-            # If status not provided (say, for non-update requests), skip status validations
+        if not new_status:
             return data
-
-
 
         if request_obj.status == "approved" and new_status == "pending":
             raise serializers.ValidationError("Cannot revert an approved request back to pending.")
-
         if request_obj.status == "delivered":
             raise serializers.ValidationError("Cannot change status of a delivered request.")
-
         if new_status == "delivered" and request_obj.status != "approved":
             raise serializers.ValidationError("Request must be approved before it can be delivered.")
 
         if new_status == "approved":
             product = request_obj.product
-            qty = request_obj.quantity_requested or 0
+            qty = Decimal(request_obj.quantity_requested or 0)
 
             if not product:
                 raise serializers.ValidationError("Cannot approve request with no product set.")
@@ -319,10 +323,16 @@ class ResourceRequestStatusUpdateSerializer(serializers.Serializer):
                 raise serializers.ValidationError(f"Product '{product.name}' not available in cell inventory.")
             if not district_inv:
                 raise serializers.ValidationError(f"Product '{product.name}' not available in district inventory.")
-            if cell_inv.quantity_available < qty:
-                raise serializers.ValidationError(f"Not enough stock in cell inventory (available {cell_inv.quantity_available}, requested {qty}).")
-            if district_inv.quantity_remaining < qty:
-                raise serializers.ValidationError(f"Not enough stock in district inventory (available {district_inv.quantity_remaining}, requested {qty}).")
+
+            if Decimal(cell_inv.quantity_available) < qty:
+                raise serializers.ValidationError(
+                    f"Not enough stock in cell inventory (available {cell_inv.quantity_available}, requested {qty})."
+                )
+            if Decimal(district_inv.quantity_remaining_at_cells) < qty:
+                raise serializers.ValidationError(
+                    f"Not enough stock remaining for cells in district inventory "
+                    f"(available {district_inv.quantity_remaining_at_cells}, requested {qty})."
+                )
 
         return data
 
@@ -338,24 +348,17 @@ class ResourceRequestStatusUpdateSerializer(serializers.Serializer):
                 cell = request_obj.land.cell
                 district = cell.sector.district
 
-                cell_inv_qs = CellInventory.objects.select_for_update().filter(cell=cell, product=product)
-                district_inv_qs = DistrictInventory.objects.select_for_update().filter(district=district, product=product)
+                # Lock inventory rows
+                cell_inv = CellInventory.objects.select_for_update().get(cell=cell, product=product)
+                district_inv = DistrictInventory.objects.select_for_update().get(district=district, product=product)
 
-                cell_inv = cell_inv_qs.first()
-                district_inv = district_inv_qs.first()
+                # Deduct dynamically
+                cell_inv.quantity_available = Decimal(cell_inv.quantity_available) - qty
+                district_inv.quantity_at_cell = Decimal(district_inv.quantity_at_cell) + qty
+                district_inv.quantity_remaining_at_cells = Decimal(district_inv.quantity_remaining_at_cells) - qty
 
-                if not cell_inv or not district_inv:
-                    raise ValidationError("Inventory rows missing during approval check.")
-
-                if Decimal(cell_inv.quantity_available) < qty:
-                    raise ValidationError("Not enough stock in cell inventory to approve the request.")
-                if Decimal(district_inv.quantity_remaining) < qty:
-                    raise ValidationError("Not enough stock in district inventory to approve the request.")
-
-                cell_inv.quantity_available = float(Decimal(cell_inv.quantity_available) - qty)
-                district_inv.quantity_at_cell = float(Decimal(district_inv.quantity_at_cell) - qty)
-                cell_inv.save()
-                district_inv.save()
+                cell_inv.save(update_fields=["quantity_available"])
+                district_inv.save(update_fields=["quantity_at_cell", "quantity_remaining_at_cells"])
 
                 request_obj.status = "approved"
                 request_obj.approved_by = self.context["request"].user
@@ -370,9 +373,9 @@ class ResourceRequestStatusUpdateSerializer(serializers.Serializer):
                 request_obj.delivery_date = timezone.now()
                 request_obj.comment = comment
 
-            request_obj.save()
-        return request_obj
+            request_obj.save(update_fields=["status", "approved_by", "delivery_date", "comment"])
 
+        return request_obj
 class ResourceRequestDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = ResourceRequest

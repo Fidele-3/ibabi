@@ -27,6 +27,7 @@ from .views.views.resources import (
     ResourceRequestViewSet,
     ResourceRequestFeedbackViewSet,
 )
+from users.views.views.profile import MeViewSet
 from users.views.views.adresses import get_districts, get_sectors, get_cells, get_villages
 from users.views.views.land import LandViewSet, LivestockLocationViewSet
 from users.views.views.season_plan import CellSeasonPlanViewSet
@@ -39,6 +40,8 @@ from users.views.views.notifications import NotificationViewSet
 from users.views.views.dashbord import RoleAwareDashboard
 from users.views.views.cell_climate import CellClimateDataViewSet
 from users.views.views.ai_data import AIDataViewSet
+from users.views.api_views.citizen_logout import LogoutView
+from users.views.views.farmer_inventory import FarmerInventoryViewSet
 router = DefaultRouter()
 router.register(r'products', ProductViewSet, basename='product')
 router.register(r'product-prices', ProductPriceViewSet, basename='productprice')
@@ -64,6 +67,12 @@ router.register(r'farmer-issues', FarmerIssueViewSet, basename='farmerissue')
 router.register(r'notifications', NotificationViewSet, basename='notifications')
 router.register(r'announcements', AnnouncementViewSet, basename='announcements')
 router.register(r'cell-climates', CellClimateDataViewSet, basename='cellclimate')
+router.register(r'farmer-inventory', FarmerInventoryViewSet, basename='farmer-inventory') # http://localhost:8000/api/farmer-inventory/08ec6d3a-1912-41e3-819a-ecacc6938546/deduct/
+me_viewset = MeViewSet.as_view({
+    "get": "list",
+    "put": "update",
+    "patch": "partial_update",
+})
 router.register(r'ai-data', AIDataViewSet, basename='ai-data') # GET ALL AI DATA IN FOUR JSON OBJECTS
 urlpatterns = [
     path('super-admin/register/', SuperAdminCreateView.as_view(), name='super_admin_create'),
@@ -83,6 +92,8 @@ urlpatterns = [
     path('ajax/get-sectors/', get_sectors, name='get_sectors'),
     path('ajax/get-cells/', get_cells, name='get_cells'),
     path('ajax/get-villages/', get_villages, name='get_villages'),
+    path('logout/', LogoutView.as_view(), name='logout'),  # Logout endpoint
+    path('me/', me_viewset, name='me'),  # User profile endpoint
 
 
     path('', include(router.urls)),

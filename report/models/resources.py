@@ -40,7 +40,11 @@ class DistrictInventory(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     
     quantity_added = models.PositiveBigIntegerField(default=0, help_text="Total quantity added to this district inventory")
-    quantity_at_cell = models.DecimalField(max_digits=12, decimal_places=2, default=0)  # sum of stock currently allocated to cells
+    quantity_at_cell = models.DecimalField(max_digits=12, decimal_places=2, default=0)  
+    # total allocated to cells
+    quantity_remaining_at_cells = models.DecimalField(max_digits=12, decimal_places=2, default=0)  
+    # live available in all cells combined
+    
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -48,14 +52,12 @@ class DistrictInventory(models.Model):
 
     @property
     def quantity_remaining(self):
-        # Remaining = total added - quantity currently allocated to cells
-        return self.quantity_added - float(self.quantity_at_cell or 0)
+        # District stock not yet allocated to cells
+        return self.quantity_added - (self.quantity_at_cell or Decimal(0))
 
 
 
 
-
-from decimal import Decimal
 
 class CellInventory(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -103,7 +105,33 @@ class CellInventory(models.Model):
 
         super().save(*args, **kwargs)
 
+class FarmerInventory(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    farmer = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="farmer_inventories")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
 
+    quantity_added = models.PositiveBigIntegerField(default=0, help_text="Total quantity added from delivered resource requests")
+    quantity_allocated = models.DecimalField(max_digits=12, decimal_places=2, default=0)  # for future allocations
+    quantity_deducted = models.DecimalField(max_digits=12, decimal_places=2, default=0)  # track used/deducted stock
+    
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.farmer.full_names} - {self.product.name}"
+
+    @property
+    def quantity_remaining(self):
+        return float(self.quantity_added) - float(self.quantity_allocated or 0) - float(self.quantity_deducted or 0)
+    
+    def deduct(self, amount):
+        if amount > self.quantity_remaining:
+            raise ValueError("Cannot deduct more than the remaining quantity.")
+        self.quantity_deducted += amount
+        self.save()
+        return self
+
+
+from django.db.models import Sum, F
 class CellResourceRequest(models.Model):
     STATUS_CHOICES = [
         ("pending", "Pending"),
@@ -123,65 +151,103 @@ class CellResourceRequest(models.Model):
     comment = models.TextField(blank=True, null=True)
 
     def clean(self):
-        # Validation rules enforcing your requested limits
-
-        # Total hectares of registered farmers' lands in this cell
+        # Validation rules enforcing requested limits
         lands = self.cell.land_set.filter(owner__isnull=False)
-
         total_hectares = sum([land.size_hectares for land in lands if land.size_hectares])
         requested_qty = self.quantity_requested or Decimal(0)
 
-        # Recommended quantity for this product
         recommended = RecommendedQuantity.objects.filter(
             product=self.product,
             crop_name=self.product.name
         ).first()
 
-        # Planned crop for this cell
         planned_crop = getattr(self.cell, 'planned_crop', None)
 
-        # Calculate recommended amount for the cell's lands
         recommended_amount = Decimal(0)
         if recommended and total_hectares:
             recommended_amount = Decimal(total_hectares) * recommended.quantity_per_hectare
 
-        # District inventory for this product and cell's district
         district_inventory = DistrictInventory.objects.filter(
             district=self.cell.sector.district,
             product=self.product
         ).first()
         district_qty = Decimal(district_inventory.quantity_remaining) if district_inventory else Decimal(0)
 
-
-        # Validation logic
         if planned_crop and planned_crop == self.product:
-            # Planned crop - allow up to 150% of recommended
             max_allowed = recommended_amount * Decimal('1.5')
             if requested_qty > max_allowed:
                 raise ValidationError(
                     f"Request exceeds 150% of recommended amount ({max_allowed}) for planned crop."
                 )
         elif recommended:
-            # Unplanned but recommended - max 30%
             max_allowed = recommended_amount * Decimal('0.3')
             if requested_qty > max_allowed:
                 raise ValidationError(
                     f"Request exceeds 30% of recommended amount ({max_allowed}) for unplanned recommended crop."
                 )
         else:
-            # Non-recommended - max 5% of district inventory
             max_allowed = district_qty * Decimal('0.05')
             if requested_qty > max_allowed:
                 raise ValidationError(
                     f"Request exceeds 5% of district inventory ({max_allowed}) for non-recommended product."
                 )
 
-        # Additional validations can be added here as needed
-
     def save(self, *args, **kwargs):
-        self.full_clean()  # Ensure clean() runs before saving
+        is_new = self._state.adding
+        previous_status = None
+        if not is_new:
+            previous_status = CellResourceRequest.objects.get(pk=self.pk).status
+
+        self.full_clean()
         super().save(*args, **kwargs)
 
+        # Only trigger updates when status changes to "approved"
+        if self.status == "approved" and previous_status != "approved":
+            qty = self.quantity_requested
+
+            # Update or create CellInventory
+            cell_inventory, _ = CellInventory.objects.get_or_create(
+                cell=self.cell,
+                sector=self.cell.sector,
+                district=self.cell.sector.district,
+                product=self.product,
+                defaults={'quantity_available': 0}
+            )
+            cell_inventory.quantity_available += qty
+            cell_inventory.save(update_fields=['quantity_available'])
+
+            # Aggregate total remaining in district inventory
+            district_inventory_qs = DistrictInventory.objects.filter(
+                district=self.cell.sector.district,
+                product=self.product
+            )
+
+            total_remaining = district_inventory_qs.aggregate(
+                total_remaining=Sum(F('quantity_added') - F('quantity_at_cell'))
+            )['total_remaining'] or 0
+
+            if qty > total_remaining:
+                raise ValidationError(
+                    f"Not enough quantity in district inventory (available {total_remaining}, requested {qty})"
+                )
+
+            # Distribute the requested quantity to district inventory rows proportionally
+            remaining_qty = qty
+            for di in district_inventory_qs.order_by('id'):
+                available = (di.quantity_added - di.quantity_at_cell)
+                if available <= 0:
+                    continue
+
+                allocate = min(available, remaining_qty)
+                di.quantity_at_cell += allocate
+                if not hasattr(di, 'quantity_remaining_at_cells'):
+                    di.quantity_remaining_at_cells = 0
+                di.quantity_remaining_at_cells += allocate
+                di.save(update_fields=['quantity_at_cell', 'quantity_remaining_at_cells'])
+
+                remaining_qty -= allocate
+                if remaining_qty <= 0:
+                    break
 
 from django.core.exceptions import ValidationError
 from decimal import Decimal

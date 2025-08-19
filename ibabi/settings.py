@@ -37,9 +37,9 @@ DATABASES = {
         'PORT': '5432',
     }
 }
+
+
 """
-
-
 PUBLIC_API_URL = os.environ.get("PUBLIC_API_URL", "http://localhost:8000")
 
 # APPLICATIONS
@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "rest_framework",
     "django_celery_beat",
+    'rest_framework_simplejwt.token_blacklist',
 ]
 
 # MIDDLEWARE
@@ -128,6 +129,8 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=7),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=31),
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "BLACKLIST_AFTER_ROTATION": True,  # allows refresh tokens to be blacklisted on logout
 }
 
 # CELERY
@@ -199,9 +202,10 @@ LOGGING = {
     'loggers': {
         'django.db.backends': {  # SQL logs
             'handlers': ['console'],
-            'level': 'DEBUG',
+            'level': 'WARNING',  # Show SQL queries
             'propagate': False,
         },
+        
         'celery': {  # Celery logs
             'handlers': ['console'],
             'level': 'DEBUG',
@@ -217,5 +221,61 @@ LOGGING = {
         },
         "django": {"handlers": ["console"], "level": "INFO"},
 
+    },
+}
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "loggers": {
+        # Keep server request/response logs
+        "django.server": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        # Suppress SQL logs
+        "django.db.backends": {
+            "handlers": ["console"],
+            "level": "WARNING",  # change DEBUG -> WARNING
+            "propagate": False,
+        },
+    },
+}
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "loggers": {
+        "django.server": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.db.backends": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        # ✅ Celery logger
+        "celery": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": True,
+        },
+        # ✅ Your own app loggers (optional)
+        "users.tasks": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
     },
 }

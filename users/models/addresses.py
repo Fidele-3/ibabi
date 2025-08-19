@@ -58,7 +58,7 @@ from users.models.products import Product
 
 class Cell(models.Model):
     # Keep your existing integer ID (default primary key)
-    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, null=True, blank=True)
 
     name = models.CharField(max_length=100)
     sector = models.ForeignKey(Sector, on_delete=models.CASCADE, related_name='cells')
@@ -89,7 +89,7 @@ class Cell(models.Model):
         null=True,
         help_text="Automatically set based on current month"
     )
-    season_year = models.PositiveIntegerField(default=timezone.now().year)
+    season_year = models.PositiveIntegerField(default=timezone.now().year, editable=False, null=True, blank=True,)
 
     planned_crop = models.ForeignKey(
         Product,

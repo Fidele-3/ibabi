@@ -9,4 +9,5 @@ class ReportConfig(AppConfig):
 
         # Import signals to ensure they are registered
         import report.signals.notification  # noqa: F401
+        import report.signals.inventory  # noqa: F401
         

@@ -75,6 +75,8 @@ class HarvestReportSerializer(serializers.ModelSerializer):
     land_cell_location = serializers.CharField(source='land.cell.name', read_only=True)
     land_village_location = serializers.CharField(source='land.village.name', read_only=True)
     land_upi = serializers.CharField(source='land.upi', read_only=True)
+    latitude = serializers.FloatField(source='land.cell.latitude', read_only=True)
+    longitude = serializers.FloatField(source='land.cell.longitude', read_only=True)
 
     # Explicit fields farmer must select
     land = serializers.PrimaryKeyRelatedField(queryset=Land.objects.all())
@@ -88,7 +90,7 @@ class HarvestReportSerializer(serializers.ModelSerializer):
             'product_name', 'product_unit', 'product_type',
             'land_size', 'land_district_location', 'land_sector_location',
             'land_cell_location', 'land_village_location',
-            'quantity', 'report_date', 'land_upi', 'status'
+            'quantity', 'report_date', 'land_upi', 'status', 'latitude', 'longitude'
         ]
         read_only_fields = ['farmer', 'report_date', 'land_size',
                             'land_district_location', 'land_sector_location',
@@ -161,6 +163,9 @@ class LivestockProductionSerializer(serializers.ModelSerializer):
     product = serializers.PrimaryKeyRelatedField(
         queryset=Product.objects.all()
     )
+    latitude = serializers.FloatField(source='location.cell.latitude', read_only=True)
+    longitude = serializers.FloatField(source='location.cell.longitude', read_only=True)
+
 
     class Meta:
         model = LivestockProduction
@@ -170,7 +175,7 @@ class LivestockProductionSerializer(serializers.ModelSerializer):
             'livestock_name', 'livestock_category',
             'animals', 'quantity', 'report_date',
             'livestock_district_location', 'livestock_sector_location',
-            'livestock_cell_location', 'livestock_village_location',
+            'livestock_cell_location', 'livestock_village_location', 'latitude', 'longitude'
         ]
         read_only_fields = ['farmer']
 
