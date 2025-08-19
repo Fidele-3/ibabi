@@ -7,20 +7,19 @@ from admn.models import AdminHierarchy
 from users.models.addresses import District, Sector, Cell
 
 
-class RoleBasedPermission(BasePermission):
-    """
-    Role-based permissions for admin creation and management.
-    Uses `added_by` from AdminHierarchy instead of `created_by`.
-    """
+from rest_framework import permissions as drf_permissions
 
+class RoleBasedPermission(BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
 
+        # super_admin & district_officer: allow all methods
         if request.user.user_level in ["super_admin", "district_officer"]:
-            return True  # Full create/delete/list
+            return True
 
-        return request.method == "GET"
+        # others: read-only
+        return request.method in drf_permissions.SAFE_METHODS
 
     def has_object_permission(self, request, view, obj):
         if request.user.user_level == "super_admin":
@@ -30,10 +29,10 @@ class RoleBasedPermission(BasePermission):
             return obj.added_by == request.user
 
         if isinstance(obj, CustomUser):
-            # If checking a user, ensure the current user is their `added_by` in AdminHierarchy
             return AdminHierarchy.objects.filter(admin=obj, added_by=request.user).exists()
 
         return False
+
 
 
 

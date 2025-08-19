@@ -1,76 +1,98 @@
 from rest_framework import viewsets, permissions
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 from report.models import (
     Land, LivestockLocation, HarvestReport, LivestockProduction,
-     ResourceRequest
+    ResourceRequest
 )
 from report.models.issues import FarmerIssue
 from users.serializer.issues import FarmerIssueSerializer
 from users.serializer.resources import ResourceRequestSerializer
 from users.serializer.land import LandSerializer, LivestockLocationSerializer
 from users.serializer.products import HarvestReportSerializer, LivestockProductionSerializer
-
-
-from users.serializer.resources import ResourceRequestSerializer
-
 from datetime import datetime
+
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 100  # default page size
+    page_size_query_param = 'page_size'
+    max_page_size = 500  # safety cap
 
 class AIDataViewSet(viewsets.ViewSet):
     """
-    Fully open AI endpoint exposing lands, livestock locations,
-    reports, issues, and resource requests in four JSON objects.
+    Open AI endpoint exposing lands, livestock locations,
+    reports, issues, and resource requests in paginated JSON objects.
     """
     permission_classes = [permissions.AllowAny]
+    pagination_class = StandardResultsSetPagination
 
-    def list(self, request, *args, **kwargs):
-        # 1️⃣ Lands and Livestock Locations
-        lands = Land.objects.all()
-        livestock_locations = LivestockLocation.objects.all()
-        lands_data = LandSerializer(lands, many=True).data
-        livestock_data = LivestockLocationSerializer(livestock_locations, many=True).data
+    def paginate_queryset(self, queryset, request):
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(queryset, request)
+        return page, paginator
 
-        # 2️⃣ Reports: HarvestReport + LivestockProduction
-        harvest_reports = HarvestReport.objects.all()
-        livestock_reports = LivestockProduction.objects.all()
-
-        # Optional date filtering
+    def filter_by_date(self, queryset, request):
+        """Filter queryset by optional date parameters"""
         year = request.query_params.get("year")
         month = request.query_params.get("month")
         day = request.query_params.get("day")
         start_date = request.query_params.get("start_date")
         end_date = request.query_params.get("end_date")
 
-        def filter_by_date(queryset):
-            if year:
-                queryset = queryset.filter(report_date__year=year)
-            if month:
-                queryset = queryset.filter(report_date__month=month)
-            if day:
-                queryset = queryset.filter(report_date__day=day)
-            if start_date and end_date:
-                try:
-                    start = datetime.strptime(start_date, "%Y-%m-%d")
-                    end = datetime.strptime(end_date, "%Y-%m-%d")
-                    queryset = queryset.filter(report_date__range=[start, end])
-                except ValueError:
-                    pass
-            return queryset
+        if year:
+            queryset = queryset.filter(report_date__year=year)
+        if month:
+            queryset = queryset.filter(report_date__month=month)
+        if day:
+            queryset = queryset.filter(report_date__day=day)
+        if start_date and end_date:
+            try:
+                start = datetime.strptime(start_date, "%Y-%m-%d")
+                end = datetime.strptime(end_date, "%Y-%m-%d")
+                queryset = queryset.filter(report_date__range=[start, end])
+            except ValueError:
+                pass
+        return queryset
 
-        harvest_reports = filter_by_date(harvest_reports)
-        livestock_reports = filter_by_date(livestock_reports)
+    def serialize_paginated(self, queryset, serializer_class, request):
+        """Paginate and serialize any queryset"""
+        page, paginator = self.paginate_queryset(queryset, request)
+        serialized_data = serializer_class(page, many=True).data
+        return {
+            "count": paginator.page.paginator.count if paginator.page else len(serialized_data),
+            "next": paginator.get_next_link(),
+            "previous": paginator.get_previous_link(),
+            "results": serialized_data
+        }
 
-        harvest_data = HarvestReportSerializer(harvest_reports, many=True).data
-        livestock_report_data = LivestockProductionSerializer(livestock_reports, many=True).data
+    def list(self, request, *args, **kwargs):
+        """Return all datasets in a structured, paginated format"""
 
-        # 3️⃣ Issues
+        # Lands
+        lands = Land.objects.all()
+        lands_data = self.serialize_paginated(lands, LandSerializer, request)
+
+        # Livestock Locations
+        livestock_locations = LivestockLocation.objects.all()
+        livestock_data = self.serialize_paginated(livestock_locations, LivestockLocationSerializer, request)
+
+        # Harvest Reports
+        harvest_reports = self.filter_by_date(HarvestReport.objects.all(), request)
+        harvest_data = self.serialize_paginated(harvest_reports, HarvestReportSerializer, request)
+
+        # Livestock Production Reports
+        livestock_reports = self.filter_by_date(LivestockProduction.objects.all(), request)
+        livestock_report_data = self.serialize_paginated(livestock_reports, LivestockProductionSerializer, request)
+
+        # Farmer Issues
         issues = FarmerIssue.objects.all()
-        issues_data = FarmerIssueSerializer(issues, many=True).data
+        issues_data = self.serialize_paginated(issues, FarmerIssueSerializer, request)
 
-        # 4️⃣ Resource Requests
+        # Resource Requests
         resource_requests = ResourceRequest.objects.all()
-        resource_requests_data = ResourceRequestSerializer(resource_requests, many=True).data
+        resource_data = self.serialize_paginated(resource_requests, ResourceRequestSerializer, request)
 
-        return Response({
+        # Build final structured response
+        response = {
             "lands_and_livestock_locations": {
                 "lands": lands_data,
                 "livestock_locations": livestock_data
@@ -80,5 +102,7 @@ class AIDataViewSet(viewsets.ViewSet):
                 "livestock_production_reports": livestock_report_data
             },
             "issues": issues_data,
-            "resource_requests": resource_requests_data
-        })
+            "resource_requests": resource_data
+        }
+
+        return Response(response)

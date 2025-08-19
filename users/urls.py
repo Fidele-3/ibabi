@@ -28,7 +28,7 @@ from .views.views.resources import (
     ResourceRequestFeedbackViewSet,
 )
 from users.views.views.profile import MeViewSet
-from users.views.views.adresses import get_districts, get_sectors, get_cells, get_villages
+from users.views.views.adresses import get_districts, get_sectors, get_cells, get_villages, get_provinces, get_available_districts, get_available_cells
 from users.views.views.land import LandViewSet, LivestockLocationViewSet
 from users.views.views.season_plan import CellSeasonPlanViewSet
 from users.views.views.approval import ResourceRequestStatusViewSet
@@ -73,7 +73,7 @@ me_viewset = MeViewSet.as_view({
     "put": "update",
     "patch": "partial_update",
 })
-router.register(r'ai-data', AIDataViewSet, basename='ai-data') # GET ALL AI DATA IN FOUR JSON OBJECTS
+router.register(r'ai-data', AIDataViewSet, basename='ai-data') # http://localhost:8000//api/ai-data/?page=1&page_size=100&year=2025&month=8
 urlpatterns = [
     path('super-admin/register/', SuperAdminCreateView.as_view(), name='super_admin_create'),
     path('auth/login/', LoginAPIView.as_view(), name='login'),
@@ -90,8 +90,11 @@ urlpatterns = [
     path("dashboard/", RoleAwareDashboard.as_view(), name="dashboard"),
     path('ajax/get-districts/', get_districts, name='get_districts'),
     path('ajax/get-sectors/', get_sectors, name='get_sectors'),
+    path('ajax/get-provinces/', get_provinces, name='get_provinces'),
     path('ajax/get-cells/', get_cells, name='get_cells'),
     path('ajax/get-villages/', get_villages, name='get_villages'),
+    path('ajax/get-available-districts/', get_available_districts, name='get_available_districts'),
+    path('ajax/get-available-cells/', get_available_cells, name='get_available_cells'),
     path('logout/', LogoutView.as_view(), name='logout'),  # Logout endpoint
     path('me/', me_viewset, name='me'),  # User profile endpoint
 

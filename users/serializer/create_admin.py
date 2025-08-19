@@ -41,7 +41,7 @@ def _normalize_rwandan_phone(value: str) -> str:
 
 class AdminCreateSerializer(serializers.ModelSerializer):
     profile_picture = serializers.ImageField(write_only=True, required=False)
-    profile = serializers.JSONField(write_only=True)
+    profile = serializers.JSONField(write_only=True, required=False, default={})
 
     managed_district_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
     managed_sector_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
@@ -58,9 +58,18 @@ class AdminCreateSerializer(serializers.ModelSerializer):
         error_messages={"min_length": "Password must be at least 8 characters long."}
     )
 
+    # 🔑 Always expose the user id
+    id = serializers.UUIDField(read_only=True)
+
+    # 🔑 Read-only nested objects for assigned locations
+    managed_district = serializers.SerializerMethodField()
+    managed_sector = serializers.SerializerMethodField()
+    managed_cell = serializers.SerializerMethodField()
+
     class Meta:
         model = CustomUser
         fields = [
+            "id",
             "email",
             "full_names",
             "phone_number",
@@ -71,12 +80,40 @@ class AdminCreateSerializer(serializers.ModelSerializer):
             "managed_district_id",
             "managed_sector_id",
             "managed_cell_id",
+            "managed_district",   # exposed with id + name
+            "managed_sector",     # exposed with id + name
+            "managed_cell",       # exposed with id + name
             "password",
         ]
         extra_kwargs = {
             "user_level": {"read_only": True},
             "password": {"write_only": True},
         }
+
+    # ---- Methods to fetch assigned objects ----
+    def get_managed_district(self, obj):
+        d = District.objects.filter(district_officer=obj).first()
+        if d:
+            return {"id": d.id, "name": d.name}
+        return None
+
+    def get_managed_sector(self, obj):
+        s = Sector.objects.filter(sector_officer=obj).first()
+        if s:
+            return {"id": s.id, "name": s.name}
+        return None
+
+    def get_managed_cell(self, obj):
+        c = Cell.objects.filter(cell_officer=obj).first()
+        if c:
+            return {"id": c.id, "name": c.name}
+        return None
+
+    # ---- Remove null fields from response ----
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        # strip out None values
+        return {k: v for k, v in rep.items() if v is not None}
 
     # ---- Validations ----
     def validate_email(self, value):
@@ -128,7 +165,7 @@ class AdminCreateSerializer(serializers.ModelSerializer):
 
     # ---- Creation ----
     def create(self, validated_data):
-        profile_data = validated_data.pop("profile", {})
+        profile_data = validated_data.pop("profile", {})  # safe even if not provided
         profile_picture = validated_data.pop("profile_picture", None)
         managed_district_id = validated_data.pop("managed_district_id", None)
         managed_sector_id = validated_data.pop("managed_sector_id", None)
@@ -142,38 +179,36 @@ class AdminCreateSerializer(serializers.ModelSerializer):
             user.set_password(password)
             user.save()
 
-        # Attach related addresses in profile data
-        def get_address_instance(model, id_val):
-            return model.objects.get(id=id_val) if id_val else None
+        # Only create UserProfile if profile_data is not empty
+        if profile_data or profile_picture:
+            def get_address_instance(model, id_val):
+                return model.objects.get(id=id_val) if id_val else None
 
-        for field_name, model_class in [
-            ("province", Province),
-            ("district", District),
-            ("sector", Sector),
-            ("cell", Cell),
-            ("village", Village),
-        ]:
-            if field_name in profile_data:
-                profile_data[field_name] = get_address_instance(model_class, profile_data[field_name])
+            for field_name, model_class in [
+                ("province", Province),
+                ("district", District),
+                ("sector", Sector),
+                ("cell", Cell),
+                ("village", Village),
+            ]:
+                if field_name in profile_data:
+                    profile_data[field_name] = get_address_instance(model_class, profile_data[field_name])
 
-        # Create UserProfile
-        user_profile = UserProfile.objects.create(user=user, **profile_data)
-        if profile_picture:
-            user_profile.profile_picture = profile_picture
-            user_profile.save()
+            user_profile = UserProfile.objects.create(user=user, **profile_data)
+            if profile_picture:
+                user_profile.profile_picture = profile_picture
+                user_profile.save()
 
         # Assign officer roles
-        if user_level == "district_officer":
+        if user_level == "district_officer" and managed_district_id:
             district = District.objects.get(id=managed_district_id)
             district.district_officer = user
             district.save()
-
-        elif user_level == "sector_officer":
+        elif user_level == "sector_officer" and managed_sector_id:
             sector = Sector.objects.get(id=managed_sector_id)
             sector.sector_officer = user
             sector.save()
-
-        elif user_level == "cell_officer":
+        elif user_level == "cell_officer" and managed_cell_id:
             cell = Cell.objects.get(id=managed_cell_id)
             cell.cell_officer = user
             cell.save()

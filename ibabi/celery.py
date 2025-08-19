@@ -69,10 +69,18 @@ logger = logging.getLogger("celery")
 
 @before_task_publish.connect
 def log_task_sent(sender=None, body=None, **kwargs):
-    # body contains 'args' and 'kwargs'
-    args = body.get("args", [])
-    kw = body.get("kwargs", {})
-    logger.info(f"📤 Task {sender} sent with args={args} kwargs={kw}")
+    try:
+        if isinstance(body, dict):
+            args = body.get("args", [])
+        elif isinstance(body, tuple):
+            args = list(body)  # convert tuple to list
+        else:
+            args = []
+        print(f"Task sent: {sender}, args={args}")
+    except Exception as e:
+        print(f"Error in log_task_sent: {e}")
+        import traceback
+        traceback.print_exc()
 
 @task_prerun.connect
 def log_task_prerun(task_id=None, task=None, args=None, kwargs=None, **other):
