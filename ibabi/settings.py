@@ -37,9 +37,9 @@ DATABASES = {
         'PORT': '5432',
     }
 }
-
-
 """
+
+
 PUBLIC_API_URL = os.environ.get("PUBLIC_API_URL", "http://localhost:8000")
 
 # APPLICATIONS
@@ -56,7 +56,6 @@ INSTALLED_APPS = [
     "django.contrib.humanize",
     "ibabi",
     "users",
-    "payment.apps.PaymentConfig",
     "admn",
     "report",
     "corsheaders",
