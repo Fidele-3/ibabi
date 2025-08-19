@@ -21,6 +21,7 @@ class AIDataViewSet(viewsets.ViewSet):
     """
     Open AI endpoint exposing lands, livestock locations,
     reports, issues, and resource requests in paginated JSON objects.
+    Supports ?all=true to return full datasets.
     """
     permission_classes = [permissions.AllowAny]
     pagination_class = StandardResultsSetPagination
@@ -54,44 +55,51 @@ class AIDataViewSet(viewsets.ViewSet):
         return queryset
 
     def serialize_paginated(self, queryset, serializer_class, request):
-        """Paginate and serialize any queryset"""
+        """Paginate OR return all results based on ?all=true"""
+        queryset = queryset.order_by("id")  # ensures consistent pagination
+
+        if request.query_params.get("all", "").lower() == "true":
+            serialized_data = serializer_class(
+                queryset.iterator(chunk_size=500), many=True
+            ).data
+            return {
+                "count": queryset.count(),
+                "next": None,
+                "previous": None,
+                "results": serialized_data,
+            }
+
+        # Default = paginated
         page, paginator = self.paginate_queryset(queryset, request)
         serialized_data = serializer_class(page, many=True).data
         return {
             "count": paginator.page.paginator.count if paginator.page else len(serialized_data),
             "next": paginator.get_next_link(),
             "previous": paginator.get_previous_link(),
-            "results": serialized_data
+            "results": serialized_data,
         }
 
     def list(self, request, *args, **kwargs):
-        """Return all datasets in a structured, paginated format"""
+        """Return all datasets in a structured, paginated or full format"""
 
-        # Lands
         lands = Land.objects.all()
         lands_data = self.serialize_paginated(lands, LandSerializer, request)
 
-        # Livestock Locations
         livestock_locations = LivestockLocation.objects.all()
         livestock_data = self.serialize_paginated(livestock_locations, LivestockLocationSerializer, request)
 
-        # Harvest Reports
         harvest_reports = self.filter_by_date(HarvestReport.objects.all(), request)
         harvest_data = self.serialize_paginated(harvest_reports, HarvestReportSerializer, request)
 
-        # Livestock Production Reports
         livestock_reports = self.filter_by_date(LivestockProduction.objects.all(), request)
         livestock_report_data = self.serialize_paginated(livestock_reports, LivestockProductionSerializer, request)
 
-        # Farmer Issues
         issues = FarmerIssue.objects.all()
         issues_data = self.serialize_paginated(issues, FarmerIssueSerializer, request)
 
-        # Resource Requests
         resource_requests = ResourceRequest.objects.all()
         resource_data = self.serialize_paginated(resource_requests, ResourceRequestSerializer, request)
 
-        # Build final structured response
         response = {
             "lands_and_livestock_locations": {
                 "lands": lands_data,

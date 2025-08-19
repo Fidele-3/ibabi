@@ -20,7 +20,7 @@ ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS if host.strip()]
 # DATABASE
 
 import os
-
+"""
 DATABASES = {
     'default': dj_database_url.config(
         default=os.getenv('DATABASE_URL')
@@ -38,7 +38,7 @@ DATABASES = {
     }
 }
 
-"""
+
 
 PUBLIC_API_URL = os.environ.get("PUBLIC_API_URL", "http://localhost:8000")
 
