@@ -10,10 +10,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "fallback-secret") 
 DEBUG = os.environ.get("DEBUG", "False") == "True"
-
+ALLOWED_HOSTS = ["*"]
 DEBUG = True  # Set to False in production
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost").split(",")
-ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS if host.strip()]
+#ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost").split(",")
+#ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS if host.strip()]
 
 #ALLOWED_HOSTS = ['http://10.0.2.2', '10.0.2.2', '127.0.0.1', 'localhost:8000', 'localhost']
 
@@ -27,6 +27,7 @@ DATABASES = {
     )
 }
 """
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -37,8 +38,8 @@ DATABASES = {
         'PORT': '5432',
     }
 }
-
 """
+
 
 PUBLIC_API_URL = os.environ.get("PUBLIC_API_URL", "http://localhost:8000")
 
@@ -155,12 +156,20 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS') == 'True'
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 
+CORS_ALLOWED_ORIGINS = [
+    "https://ibabi.onrender.com",
+    "http://localhost:3000",
+]
+CSRF_TRUSTED_ORIGINS = [
+    "https://ibabi.onrender.com",
+    "http://localhost:3000",
+]
 
 # CORS
-CORS_ALLOW_ALL_ORIGINS = os.environ.get("CORS_ALLOW_ALL_ORIGINS", "False") == "True"
-CORS_ALLOWED_ORIGINS = os.environ.get(
-    "CORS_ALLOWED_ORIGINS", "http://localhost:8081"
-).split(",")
+#CORS_ALLOW_ALL_ORIGINS = os.environ.get("CORS_ALLOW_ALL_ORIGINS", "False") == "True"
+#CORS_ALLOWED_ORIGINS = os.environ.get(
+    #"CORS_ALLOWED_ORIGINS", "http://localhost:8081"
+#).split(",")
 
 # FRONTEND URL
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
@@ -178,102 +187,70 @@ import logging
 
 
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,  # Keep existing loggers
-    'formatters': {
-        'verbose': {
-            'format': '[{levelname}] {asctime} {name} {message}',
-            'style': '{',
-        },
-    },
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'stream': sys.stdout,
-            'formatter': 'verbose',
-        },
-    },
-    'root': {
-        'handlers': ['console'],
-        'level': 'DEBUG',  # Show absolutely everything
-    },
-    'loggers': {
-        'django.db.backends': {  # SQL logs
-            'handlers': ['console'],
-            'level': 'WARNING',  # Show SQL queries
-            'propagate': False,
-        },
-        
-        'celery': {  # Celery logs
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        '': {  # Catch-all for any other logger
-            'handlers': ['console'],
-            'level': 'DEBUG',
-        },
-        "users.tasks.fetch_climate_data": {
-            "handlers": ["console"],
-            "level": "INFO",
-        },
-        "django": {"handlers": ["console"], "level": "INFO"},
+import sys
 
-    },
-}
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+
+    "formatters": {
+        "verbose": {
+            "format": "[{levelname}] {asctime} {name} - {message}",
+            "style": "{",
+        },
+    },
+
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
+            "stream": sys.stdout,
+            "formatter": "verbose",
         },
     },
+
+    "root": {  # default for everything
+        "handlers": ["console"],
+        "level": "DEBUG",   # capture all your debug logs
+    },
+
     "loggers": {
-        # Keep server request/response logs
-        "django.server": {
-            "handlers": ["console"],
-            "level": "INFO",
-            "propagate": False,
-        },
-        # Suppress SQL logs
-        "django.db.backends": {
-            "handlers": ["console"],
-            "level": "WARNING",  # change DEBUG -> WARNING
-            "propagate": False,
-        },
-    },
-}
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-        },
-    },
-    "loggers": {
-        "django.server": {
-            "handlers": ["console"],
-            "level": "INFO",
-            "propagate": False,
-        },
+        # 🚫 SQL logs → only show if WARNING/ERROR
         "django.db.backends": {
             "handlers": ["console"],
             "level": "WARNING",
             "propagate": False,
         },
-        # ✅ Celery logger
+
+        # 🌐 HTTP server logs
+        "django.server": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+
+        # 🐍 Django internal logs (middleware, etc.)
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",   # suppress DEBUG noise
+            "propagate": False,
+        },
+
+        # 🐇 Celery logs
         "celery": {
             "handlers": ["console"],
             "level": "INFO",
             "propagate": True,
         },
-        # ✅ Your own app loggers (optional)
-        "users.tasks": {
+
+        # 👤 Your custom apps
+        "users": {
             "handlers": ["console"],
-            "level": "INFO",
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "report": {
+            "handlers": ["console"],
+            "level": "DEBUG",
             "propagate": False,
         },
     },

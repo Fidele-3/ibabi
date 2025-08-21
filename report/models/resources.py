@@ -4,7 +4,7 @@ from django.utils import timezone
 from users.models.customuser import CustomUser
 from users.models.addresses import District, Province, Sector, Cell
 from users.models.products import Product, ProductPrice, RecommendedQuantity
-from report.models import Land  
+from report.models import Land, LivestockLocation
 from decimal import Decimal
 from django.utils import timezone
 from django.core.exceptions import ValidationError
@@ -263,8 +263,9 @@ class ResourceRequest(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     farmer = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="resource_requests")
-    land = models.ForeignKey(Land, on_delete=models.CASCADE, related_name="resource_requests", default=None)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True)  # Now optional
+    land = models.ForeignKey(Land, on_delete=models.CASCADE, related_name="resource_requests", null=True, blank=True)
+    livestock = models.ForeignKey(LivestockLocation, on_delete=models.CASCADE, related_name="resource_requests", null=True, blank=True)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True)
     quantity_requested = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     price_per_unit = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     total_price = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True)
@@ -273,70 +274,67 @@ class ResourceRequest(models.Model):
     approved_by = models.ForeignKey(CustomUser, null=True, blank=True, on_delete=models.SET_NULL, related_name="approved_requests")
     delivery_date = models.DateTimeField(null=True, blank=True)
     comment = models.TextField(blank=True, null=True)
+
     def clean(self):
-        """
-        Validation logic for duplicate approved requests in same season.
-        Also ensures we have a product (either passed or from planned crop).
-        """
-        # Auto-fill product if missing
-        if not self.product:
-            planned_crop = getattr(self.land.cell, "planned_crop", None)
-            if planned_crop:
-                self.product = planned_crop
-            else:
-                raise ValidationError("No product specified and no planned crop found for the cell.")
+        # Must have either land or livestock
+        if not self.land and not self.livestock:
+            raise ValidationError("Resource request must be tied to either a land or a livestock.")
 
-        now = timezone.now()
-        current_season = self.land.cell.get_current_season()
-        current_year = self.land.cell.get_current_season_year()
+        # Crop-specific logic if land is set
+        if self.land:
+            if not self.product:
+                planned_crop = getattr(self.land.cell, "planned_crop", None)
+                if planned_crop:
+                    self.product = planned_crop
+                else:
+                    raise ValidationError("No product specified and no planned crop found for the cell.")
 
-        # Check for existing approved request for same product, same land, same season/year
-        existing_request = ResourceRequest.objects.filter(
-            land=self.land,
-            product=self.product,
-            status="approved",
-            land__cell__season=current_season,
-            land__cell__season_year=current_year
-        ).exclude(id=self.id).first()
+            now = timezone.now()
+            current_season = self.land.cell.get_current_season()
+            current_year = self.land.cell.get_current_season_year()
 
-        if existing_request:
-            raise ValidationError(
-                f"A request for {self.product.name} is already approved for this land "
-                f"in Season {current_season} {current_year}."
-            )
+            existing_request = ResourceRequest.objects.filter(
+                land=self.land,
+                product=self.product,
+                status="approved",
+                land__cell__season=current_season,
+                land__cell__season_year=current_year
+            ).exclude(id=self.id).first()
+
+            if existing_request:
+                raise ValidationError(
+                    f"A request for {self.product.name} is already approved for this land "
+                    f"in Season {current_season} {current_year}."
+                )
+
+        # Livestock requests do not auto-fill; user must provide product and quantity
+        if self.livestock and not self.product:
+            raise ValidationError("Product must be specified for livestock requests.")
 
     def save(self, *args, **kwargs):
-        """Auto-fill product, price, and recommended quantity if not set."""
-        # Auto-fill product if missing
-        if not self.product:
-            planned_crop = getattr(self.land.cell, "planned_crop", None)
-            if planned_crop:
-                self.product = planned_crop
+        self.clean()  # enforce clean before saving
 
-        # Ensure we have a product at this point
-        if not self.product:
-            raise ValidationError("No product specified and no planned crop found for the cell.")
+        # Crop logic for auto-fill price and quantity
+        if self.land:
+            # Price lookup
+            product_price = ProductPrice.objects.filter(product=self.product).first()
+            if product_price and not self.price_per_unit:
+                self.price_per_unit = product_price.price
 
-        # Price lookup
-        product_price = ProductPrice.objects.filter(product=self.product).first()
-        if product_price and not self.price_per_unit:
-            self.price_per_unit = product_price.price
+            # Quantity lookup from recommendation
+            recommended = RecommendedQuantity.objects.filter(
+                product=self.product,
+                crop_name=self.product.name
+            ).first()
 
-        # Quantity lookup from recommendation
-        recommended = RecommendedQuantity.objects.filter(
-            product=self.product,
-            crop_name=self.product.name
-        ).first()
+            if recommended and self.land.size_hectares and not self.quantity_requested:
+                self.quantity_requested = Decimal(self.land.size_hectares) * recommended.quantity_per_hectare
 
-        if recommended and self.land.size_hectares and not self.quantity_requested:
-            self.quantity_requested = Decimal(self.land.size_hectares) * recommended.quantity_per_hectare
-
-        # Calculate total price
+        # Calculate total price if possible
         if self.price_per_unit and self.quantity_requested:
             self.total_price = Decimal(self.price_per_unit) * Decimal(self.quantity_requested)
 
         super().save(*args, **kwargs)
-
 
     @staticmethod
     def get_current_season(date):
@@ -349,9 +347,8 @@ class ResourceRequest(models.Model):
             return "C"
 
     def __str__(self):
-        return f"{self.product.name} request by {self.farmer.email} ({self.status})"
-
-
+        target = self.land or self.livestock
+        return f"{self.product.name} request by {self.farmer.email} ({self.status}) on {target}"
 
 class ResourceRequestFeedback(models.Model):
     request = models.OneToOneField(ResourceRequest, on_delete=models.CASCADE, related_name="feedback")

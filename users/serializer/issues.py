@@ -35,17 +35,22 @@ class FarmerIssueSerializer(serializers.ModelSerializer):
     farmer_name = serializers.CharField(source="farmer.full_names", read_only=True)
     latitude = serializers.SerializerMethodField()
     longitude = serializers.SerializerMethodField()
-    status = serializers.SerializerMethodField()  # convert status to lowercase
-
-    # Nested replies
+    status = serializers.SerializerMethodField()
     replies = serializers.SerializerMethodField()
+    district_name = serializers.CharField(source="district.name", read_only=True)
+    sector_name = serializers.CharField(source="sector.name", read_only=True)
+    cell_name = serializers.CharField(source="cell.name", read_only=True)
+    village_name = serializers.CharField(source="village.name", read_only=True)
+
+    # Explicitly handle photo upload
+    photo = serializers.ImageField(required=False, allow_null=True, use_url=True)
 
     class Meta:
         model = FarmerIssue
         fields = [
             'id', 'farmer', 'farmer_name', 'issue_type', 'description', 'photo',
             'latitude', 'longitude', 'reported_at',
-            'province', 'district', 'sector', 'cell', 'village',
+            'province', 'district', 'sector', 'cell', 'village', 'district_name', 'sector_name', 'cell_name', 'village_name',
             'status', 'replies'
         ]
         read_only_fields = ['id', 'reported_at', 'farmer_name', 'replies']
@@ -57,28 +62,32 @@ class FarmerIssueSerializer(serializers.ModelSerializer):
         request = self.context.get('request', None)
         issue_id = request.query_params.get('issue_id') if request else None
 
+        replies_qs = obj.replies.all()
         if issue_id:
-            replies_qs = obj.replies.filter(issue_id=issue_id)
-        else:
-            replies_qs = obj.replies.all()
+            replies_qs = replies_qs.filter(issue_id=issue_id)
 
         return FarmerIssueReplySerializer(replies_qs, many=True).data
 
     def validate(self, data):
+        errors = {}
+
         province = data.get('province')
         district = data.get('district')
         sector = data.get('sector')
         cell = data.get('cell')
         village = data.get('village')
 
-        if district.province_id != province.id:
-            raise serializers.ValidationError("District does not belong to the selected Province.")
-        if sector.district_id != district.id:
-            raise serializers.ValidationError("Sector does not belong to the selected District.")
-        if cell.sector_id != sector.id:
-            raise serializers.ValidationError("Cell does not belong to the selected Sector.")
-        if village.cell_id != cell.id:
-            raise serializers.ValidationError("Village does not belong to the selected Cell.")
+        if province and district and district.province_id != province.id:
+            errors['district'] = ["District does not belong to the selected Province."]
+        if district and sector and sector.district_id != district.id:
+            errors['sector'] = ["Sector does not belong to the selected District."]
+        if sector and cell and cell.sector_id != sector.id:
+            errors['cell'] = ["Cell does not belong to the selected Sector."]
+        if cell and village and village.cell_id != cell.id:
+            errors['village'] = ["Village does not belong to the selected Cell."]
+
+        if errors:
+            raise serializers.ValidationError(errors)
 
         return data
 

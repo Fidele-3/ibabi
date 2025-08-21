@@ -74,8 +74,9 @@ class LivestockLocation(models.Model):
             ("available", "Available")
         ],
         default="available",
-        help_text="Status of the livestock location"
+        help_text="Status of the Harvest report"
     )
+    
 
 
     def __str__(self):

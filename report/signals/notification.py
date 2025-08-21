@@ -67,28 +67,44 @@ def notify_livestock_production(sender, instance, created, **kwargs):
 @receiver(post_save, sender=ResourceRequest)
 def notify_resource_request(sender, instance, created, **kwargs):
     farmer = instance.farmer
-    cell = instance.land.cell
-    cell_officer = getattr(cell, 'cell_officer', None)
+    cell = None
+    cell_officer = None
+    upi = None
+
+    # Determine if this request is related to land or livestock
+    if instance.land:
+        cell = instance.land.cell
+        upi = instance.land.upi
+    elif instance.livestock:
+        cell = instance.livestock.cell
+        upi = instance.livestock.upi
+
+    # Safely get the cell officer
+    if cell:
+        cell_officer = getattr(cell, 'cell_officer', None)
+
     status = instance.status
-    upi = instance.land.upi
 
     if created:
         # Notify farmer
         message = f"Your resource request for {instance.product.name} ({instance.quantity_requested}) has been submitted and is pending approval."
         create_notification(farmer, "Resource Request Submitted", message)
+
         # Notify cell officer
         if cell_officer:
-            message = f"Farmer {farmer.get_full_name()} (UPI: {upi}) requested {instance.product.name} ({instance.quantity_requested}) from {cell.name}."
+            entity_name = instance.land.upi if instance.land else instance.livestock.upi if instance.livestock else "N/A"
+            message = f"Farmer {farmer.get_full_name()} (UPI: {entity_name}) requested {instance.product.name} ({instance.quantity_requested}) from {cell.name}."
             create_notification(cell_officer, "New Farmer Resource Request", message)
     else:
         # Notify farmer about status change
         message = f"Your resource request for {instance.product.name} has been {status}."
         create_notification(farmer, f"Resource Request {status.title()}", message)
+
         # Notify cell officer about status change
         if cell_officer:
-            message = f"Resource request for {instance.product.name} from farmer {farmer.get_full_name()} (UPI: {upi}) has been {status}."
+            entity_name = instance.land.upi if instance.land else instance.livestock.upi if instance.livestock else "N/A"
+            message = f"Resource request for {instance.product.name} from farmer {farmer.get_full_name()} (UPI: {entity_name}) has been {status}."
             create_notification(cell_officer, f"Farmer Resource Request {status.title()}", message)
-
 
 # -------------------------------
 # CELL RESOURCE REQUEST (Officer → District Inventory)
