@@ -38,8 +38,8 @@ DATABASES = {
         'PORT': '5432',
     }
 }
-"""
 
+"""
 
 PUBLIC_API_URL = os.environ.get("PUBLIC_API_URL", "http://localhost:8000")
 
@@ -123,6 +123,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
+    "EXCEPTION_HANDLER": "users.utils.exceptions.debug_exception_handler",
 }
 
 # SIMPLE JWT
@@ -189,6 +190,8 @@ import logging
 
 import sys
 
+import sys
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -210,7 +213,7 @@ LOGGING = {
 
     "root": {  # default for everything
         "handlers": ["console"],
-        "level": "DEBUG",   # capture all your debug logs
+        "level": "DEBUG",
     },
 
     "loggers": {
@@ -221,17 +224,24 @@ LOGGING = {
             "propagate": False,
         },
 
-        # 🌐 HTTP server logs
+        # 🌐 HTTP server logs (runserver requests)
         "django.server": {
             "handlers": ["console"],
             "level": "INFO",
             "propagate": False,
         },
 
-        # 🐍 Django internal logs (middleware, etc.)
+        # 🐍 Django request/response + exceptions
+        "django.request": {
+            "handlers": ["console"],
+            "level": "DEBUG",   # was WARNING before, now show all
+            "propagate": False,
+        },
+
+        # 🔎 Django internals (middleware, etc.)
         "django": {
             "handlers": ["console"],
-            "level": "INFO",   # suppress DEBUG noise
+            "level": "INFO",
             "propagate": False,
         },
 
@@ -249,6 +259,13 @@ LOGGING = {
             "propagate": False,
         },
         "report": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+
+        # 📦 Django REST Framework
+        "rest_framework": {
             "handlers": ["console"],
             "level": "DEBUG",
             "propagate": False,
