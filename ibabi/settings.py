@@ -158,11 +158,11 @@ EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS') == 'True'
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 
 CORS_ALLOWED_ORIGINS = [
-    "https://ibabi.onrender.com",
+    "https://ibabi.vercel.app",
     "http://localhost:3000",
 ]
 CSRF_TRUSTED_ORIGINS = [
-    "https://ibabi.onrender.com",
+    "https://ibabi.vercel.app",
     "http://localhost:3000",
 ]
 
