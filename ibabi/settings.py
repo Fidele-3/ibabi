@@ -172,8 +172,7 @@ CSRF_TRUSTED_ORIGINS = [
     #"CORS_ALLOWED_ORIGINS", "http://localhost:8081"
 #).split(",")
 
-# FRONTEND URL
-FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000", "https://ibabi.vercel.app")
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://ibabi.vercel.app")
 
 # MISC
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
