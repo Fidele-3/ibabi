@@ -41,7 +41,7 @@ DATABASES = {
 """
 
 
-PUBLIC_API_URL = os.environ.get("PUBLIC_API_URL", "http://localhost:8000")
+PUBLIC_API_URL = os.environ.get("PUBLIC_API_URL", "https://ibabi.onrender.com")
 
 # APPLICATIONS
 INSTALLED_APPS = [
