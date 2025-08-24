@@ -104,4 +104,15 @@ The platform operates on a hierarchical model based on Rwanda's administrative s
   - **PASSWORD** : Citizen123!
   - **OTP**: reach out to us at +250786161794, or **email**: fidelensanzumuhire9@gmail.com so that we can give you the OTP after successfully logging in with email and password
 
+## You can create as many citizen users as you want,and logging in as well. 
+
+## Creading admin users( district officer, cell officer, teachnicians must be followed as the rules we stated describes. see the info above for more clarities and how those users can be created as well.)
+
+
+## TEAM MEMBERS:
+ - Fidele Nsanzumuhire  ----> Full stack engineer(Group leader)
+ - Nsengiyumva Augustin -----> AI engineeer
+ - Niyoyita Stephane --------> Data analyst
+ - Bizimana Ibrahim  ---------> AI engineer
+ - Giraneza Fiston  -----------> UX/UI Engineer
 
