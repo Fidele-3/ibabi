@@ -1,160 +1,107 @@
-# myibabi
+# IBABI Platform - Digital Agricultural Management System
 
-## 📌 **Project Overview**
-**myibabi** is a nationwide platform built with **Django** for the backend and an integrated **Admin Panel** that uses **Django templates** as the frontend for administrative users.  
+![IBABI Platform]
 
-Citizens access the system using the **myibabi Mobile App**, while all administrative actions are performed via the web-based admin panel.  
+## Overview
 
-The platform follows Rwanda’s full administrative hierarchy:  
-**Province → District → Sector → Cell → Village**  
+IBABI Platform is a comprehensive digital agricultural management system designed to revolutionize farming support in Rwanda. The platform connects government agricultural officers, farmers (citizens), and agricultural experts through a unified web application, PWA mobile app, and future USSD integration.
 
-### 🔑 **Key Concepts**
-- **SuperAdmin** is the highest user level and is the only one who can create admin accounts.  
-- **Sector Officers** accounts are created by the SuperAdmin to keep the system manageable and confidential. 
-- **Sector Officers** creates the  **Cell Officers** accounts
-- **Citizens** can create their own accounts through the **myibabi App**.  
-- **ibabi activities** are managed at the **Sector level** but executed at the **Cell level** so participants can work locally.  but the system is build in way such that all sectors nationwide will have access to management of their ibabi activity
+This system enables farmers to request resources, report issues, submit concerns, and make production reports while allowing officials at various administrative levels to manage inventories, approve requests, and provide timely feedback, creating a seamless agricultural support ecosystem.
 
----
+## Key Features
 
-## 🚀 **Features**
+### 🌾 For Farmers (Citizens)
+- **User Registration & Profile Management**: OTP-based signup and login. Register lands and livestock for personalized services.
+- **Resource Requests**: Request seeds, fertilizers, medicines, and other farming inputs.
+- **Issue Reporting**: Report problems related to crops, livestock, or land directly from the field.
+- **Production Reporting**: Log and submit reports on yields and livestock production.
+- **Multi-channel Notifications**: Receive SMS and email updates on request status, issue resolutions, and important announcements.
 
-### 👤 **User & Account Management**
-- **SuperAdmin**
-  - Creates all admin accounts (**Sector Officers**)  
-  - Assigns officers to specific Sectors or Cells (one-to-one assignment).  
-  - Views action logs of all admins.  
-  - Handles Sectors with duplicate names by displaying them as:  
-    **sector_name (district_name, province_name)**.  
+### 🏛️ For Government Officials (Cell, District, National Levels)
+- **Hierarchical Admin Management**: Super-admins can create lower-level officials (District -> Cell).
+- **Inventory Management**: Track and manage agricultural resource stocks at various administrative levels.
+- **Request & Issue Approval Workflow**: Review, approve, or deny farmer submissions with actionable feedback.
+- **Dashboard & Analytics**: View maps and reports on resource distribution, common issue types, and regional hotspots.
 
-- **Sector Officers**
-  - Manage **ibabi** at the sector level. 
-  - **Sector Officers** creates  **Cell Officers** account. 
-  - Set the **ibabi date** for the whole sector.  
-  - Assign Cell Officers to cells within their sector.  
-  - View activities done by Cell Officers and filter them per cell.  
+### 🔧 For Agricultural Technicians
+- **Assigned Task Management**: Receive and address technical issues escalated by cell or district officers.
+- **Expert Feedback System**: Provide specialized advice and solutions to farmer-reported problems.
 
-- **Cell Officers**
-  - Receive automatic notifications when a Sector Officer sets a sector-wide date.  
-  - Add detailed session info at the **Cell level**, including:  
-    - **Village location** where ibabi will take place.  
-    - **Tools needed** for the activity.  
-    - **Fine policy** for absentees.  
-    - **Description** of the session.  
-  - View the list of citizens in their cell scheduled to attend.  
-  - Mark attendance and manage fines.  
+### 🤖 Platform-Wide Features
+- **Advanced Authentication**: Secure JWT-based access with OTP login and password reset functionality.
+- **Multi-language Support**: Interface available in multiple languages (e.g., Kinyarwanda, English, French).
+- **Theme Support**: Switch between light and dark modes for user comfort.
+- **AI-Powered Tools**:
+  - **Yield Prediction**: AI models to predict crop yields based on historical and current data.
+  - **Chatbot Assistant**: An interactive AI chatbot to answer common farmer queries and guide them.
+- **Asynchronous Notifications**: Powered by Celery and Redis for reliable, real-time messaging via SMS and email.
+- **Progressive Web App (PWA)**: Full mobile app functionality on iOS and Android without an app store.
+- **Future USSD Integration**: Plan for accessibility via basic feature phones.
 
-- **Citizens**
-  - Register using the **myibabi App**.  
-  - Automatically linked to their **Province, District, Sector, Cell, and Village** using dropdown filtering.  
-  - See **ibabi** sessions planned for their **specific cell**.  
-  - Even if two citizens are in the same sector, they only share the **date** if they are in different cells; all other details (village, tools, fines, description) depend on the **Cell Officer**.  
+## Technology Stack
 
----
+### Frontend
+- **Framework**: Next.js 14 (App Router)
+- **Language**: TypeScript
+- **UI Library**: React with Shadcn/UI or similar component library
+- **State Management**: React Query / TanStack Query & Zustand
+- **Charting**: Recharts or Chart.js
+- **PWA**: Next-PWA
 
-### 🛠️ **ibabi Management Workflow**
-1. **Sector Officer** sets the sector-wide **ibabi date**.  
-2. **Cell Officers**:
-   - Automatically notified via in-app and email notifications.  
-   - Add specific details at the cell level (village, tools, description, fines).  
-3. **Citizens**:
-   - Receive session info relevant to their cell only.  
-   - Are notified if the session is within 3 days (automatic Celery scheduled reminders twice a day).  
-4. **Attendance & Fines**:
-   - Cell Officers mark attendance filtered by user’s **Sector and Cell**.  
-   - If the **ibabi date passes** and some users have no attendance marked, a signal automatically fines them based on the fine policy.  
-   - Another signal detects new fines and sends **email + SMS notifications** via **Celery + Redis**.  
+### Backend
+- **Framework**: Django  & Django REST Framework (DRF)
+- **Language**: Python 
+- **Database**: PostgreSQL (Production),
+- **Authentication**: Simple JWT with custom OTP handling
+- **Async Task Queue**: Celery with Redis as the Broker/Result Backend
+- **Caching**: Redis
+- **Object Storage**:  AWS S3 or DigitalOcean Spaces for media files
 
----
+### Deployment & DevOps
+- **Web Server**: Nginx
+- **WSGI Server**: Gunicorn
+- **Containerization**: Docker & Docker Compose
+- **CI/CD**: GitHub Actions or GitLab CI
+- **Platform**: VPS (e.g., DigitalOcean, AWS EC2) or PaaS (e.g., Railway, Heroku)
 
-### 📍 **Administrative Hierarchy Integration**
-- Full database of **Provinces, Districts, Sectors, Cells, Villages** preloaded.  
-- Dropdown-based selection to avoid manual typing of location names.  
-- Automatic filtering ensures users and admins are linked to correct administrative levels.  
+## System Architecture & User Roles
 
----
+The platform operates on a hierarchical model based on Rwanda's administrative structure:
 
-### 📢 **Notifications**
-- Citizens are notified when:  
-  - A Sector Officer sets a new **ibabi** date.  
-  - A session is 3 days away (Celery scheduled reminders).  
-  - They are fined for missing attendance (email + SMS via Celery).  
+1.  **Super Admin (National Level)**
+    - Has system-wide oversight.
+    - Creates and manages District Officer accounts.
+    - Views national-level analytics and reports.
+    - Configures system-wide settings.
 
----
+2.  **District Officer**
+    - Created by the Super Admin.
+    - Creates and Manages Cell Officers within their district.
+    - Oversees district-level inventory, requests, and issues.
+    - Views district-level dashboards.
 
-### 💸 **Payments**
-- Citizens can pay fines via **Mobile Money (MTN & Airtel)**.  
-- Payment API integration is planned for production.  
+3.  **Cell Officer**
+    - Created by a District Officer.
+    - First point of contact for farmers in their cell.
+    - Validates and triages farmer requests and reports.
+    - Manages cell-level inventory.
 
----
+4.  **Agricultural Technician**
+    - assigned to specific districts or cells.
+    - Receives and resolves technical issues escalated by officers.
+    - Provides expert advice and solutions.
 
-### 🔐 **Account Management**
-- Citizens and admins can update their profile information.  
-- Password reset via **OTP sent to email** using **Celery + Redis**.  
+5.  **Farmer (Citizen)**
+    - Self-registers on the platform via OTP.
+    - Can register multiple plots of land and livestock.
+    - Submits requests and reports visible to their local Cell Officer.
 
+## Deployed links**
+  - https://ibabi.vercel.app/  
 
-## 📌 Sample Login Credentials
-
-### 🟣 SuperAdmin
-- **Email:** fidelensanzumuhire9@gmail.com  
-  **Password:** 11223344  
-
----
-
-### 🟢 Sector Officers
-- **Email:** kagarama@kagarama.com  
-  **Password:** 11223344  
-
-- **Email:** kigoma@kigoma.com  
-  **Password:** 11223344  
-
-- **Email:** muhoza@muhoza.com  
-  **Password:** 11223344  
-
-- **Email:** nyamata@nyamata.com  
-  **Password:** 11223344  
-
----
-
-### 🔵 Cell Officers
-- **Email:** kanazi@kanazi.com  
-  **Password:** 11223344  
-
-- **Email:** maranyundo1@maranyundo.com  
-  **Password:** 11223344  
-
-- **Email:** mpenge@mpenge.com  
-  **Password:** 11223344  
-
-- **Email:** kigombe@kigombe.com  
-  **Password:** 11223344  
-
----
-
-### 🟠 Citizens
+## SUPER ADMIN LOGIN CREDENTIALS
+  - **EMAIL**: fidelensanze100@example.com
+  - **PASSWORD** : Citizen123!
+  - **OTP**: reach out to us at +250786161794, or **email**: fidelensanzumuhire9@gmail.com so that we can give you the OTP after successfully logging in with email and password
 
 
-
-
-## 🔑 Creating Additional Users
-
-✅ **Apart from SuperAdmin only, you can create other user accounts yourself:**  
-
-1. **Create Sector Officer Accounts**  
-   - Go to the **SuperAdmin Dashboard**.  
-   - **First add the Sector** the officer will lead by clicking the **"Add Sector"** button.  
-   - After adding the sector, create the Sector Officer account with login credentials and assign it to that sector.  
-
-2. **Create Cell Officer Accounts**  
-   - Go to the **Sector Officer Dashboard**.  
-   - Add a new Cell Officer and select the **Cell he will lead** from the list of cells in the sector.  
-
-3. **Create Citizen Accounts**  
-   - You can register citizens directly from the **myibabi Mobile App**.  
-   - There is no limit on the number of citizens you can create.  
-
-
-## 🔗 Deployed Links
-
-- 🌐 **Backend & Admin Panel:** [https://ibabi.onrender.com](https://ibabi.onrender.com)  
-- 📥 **Citizen App APK Download:** [https://www.mediafire.com/file/iocxm8nxi3q2y28/app-release.apk/file](https://www.mediafire.com/file/iocxm8nxi3q2y28/app-release.apk/file)  
