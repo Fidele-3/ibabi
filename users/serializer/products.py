@@ -165,6 +165,8 @@ class LivestockProductionSerializer(serializers.ModelSerializer):
     )
     latitude = serializers.FloatField(source='location.cell.latitude', read_only=True)
     longitude = serializers.FloatField(source='location.cell.longitude', read_only=True)
+    status = serializers.CharField(required=False)
+    upi = serializers.CharField(source='location.upi', read_only=True)
 
 
     class Meta:
@@ -175,7 +177,7 @@ class LivestockProductionSerializer(serializers.ModelSerializer):
             'livestock_name', 'livestock_category',
             'animals', 'quantity', 'report_date',
             'livestock_district_location', 'livestock_sector_location',
-            'livestock_cell_location', 'livestock_village_location', 'latitude', 'longitude'
+            'livestock_cell_location', 'livestock_village_location', 'latitude', 'longitude', 'upi'
         ]
         read_only_fields = ['farmer']
 

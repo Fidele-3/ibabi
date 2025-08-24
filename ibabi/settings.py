@@ -38,8 +38,8 @@ DATABASES = {
         'PORT': '5432',
     }
 }
-"""
 
+"""
 
 PUBLIC_API_URL = os.environ.get("PUBLIC_API_URL", "https://ibabi.onrender.com")
 
@@ -160,10 +160,14 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 CORS_ALLOWED_ORIGINS = [
     "https://ibabi.onrender.com",
     "https://ibabi.vercel.app",
+    "http://localhost:3000",
+    "http://localhost:3000",
 ]
 CSRF_TRUSTED_ORIGINS = [
     "https://ibabi.onrender.com",
     "https://ibabi.vercel.app",
+    "http://localhost:3000",
+    "http://localhost:3000",
 ]
 
 # CORS
@@ -172,8 +176,15 @@ CSRF_TRUSTED_ORIGINS = [
     #"CORS_ALLOWED_ORIGINS", "http://localhost:8081"
 #).split(",")
 
-FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://ibabi.vercel.app")
+FRONTEND_URLS = [
+    "https://ibabi.vercel.app",
+    "http://localhost:3000",
+]
 
+# If you want to still allow override from env:
+extra = os.environ.get("FRONTEND_URL")
+if extra:
+    FRONTEND_URLS.append(extra)
 # MISC
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 SITE_ID = 1
@@ -210,48 +221,37 @@ LOGGING = {
         },
     },
 
-    "root": {  # default for everything
+    "root": {  
         "handlers": ["console"],
         "level": "DEBUG",
     },
 
     "loggers": {
-        # 🚫 SQL logs → only show if WARNING/ERROR
         "django.db.backends": {
             "handlers": ["console"],
             "level": "WARNING",
             "propagate": False,
         },
-
-        # 🌐 HTTP server logs (runserver requests)
         "django.server": {
             "handlers": ["console"],
             "level": "INFO",
             "propagate": False,
         },
-
-        # 🐍 Django request/response + exceptions
         "django.request": {
             "handlers": ["console"],
-            "level": "DEBUG",   # was WARNING before, now show all
+            "level": "DEBUG",   
             "propagate": False,
         },
-
-        # 🔎 Django internals (middleware, etc.)
         "django": {
             "handlers": ["console"],
             "level": "INFO",
             "propagate": False,
         },
-
-        # 🐇 Celery logs
         "celery": {
             "handlers": ["console"],
             "level": "INFO",
             "propagate": True,
         },
-
-        # 👤 Your custom apps
         "users": {
             "handlers": ["console"],
             "level": "DEBUG",
@@ -262,8 +262,6 @@ LOGGING = {
             "level": "DEBUG",
             "propagate": False,
         },
-
-        # 📦 Django REST Framework
         "rest_framework": {
             "handlers": ["console"],
             "level": "DEBUG",
