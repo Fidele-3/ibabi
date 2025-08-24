@@ -41,11 +41,11 @@ This system enables farmers to request resources, report issues, submit concerns
 ## Technology Stack
 
 ### Frontend
-- **Framework**: Next.js 14 (App Router)
+- **Framework**: Next.js 16 (App Router)
 - **Language**: TypeScript
 - **UI Library**: React with Shadcn/UI or similar component library
 - **State Management**: React Query / TanStack Query & Zustand
-- **Charting**: Recharts or Chart.js
+- **Charting**: Chart.js
 - **PWA**: Next-PWA
 
 ### Backend
@@ -55,14 +55,14 @@ This system enables farmers to request resources, report issues, submit concerns
 - **Authentication**: Simple JWT with custom OTP handling
 - **Async Task Queue**: Celery with Redis as the Broker/Result Backend
 - **Caching**: Redis
-- **Object Storage**:  AWS S3 or DigitalOcean Spaces for media files
+- **Object Storage**:  AWS S3  for media files
 
 ### Deployment & DevOps
 - **Web Server**: Nginx
 - **WSGI Server**: Gunicorn
 - **Containerization**: Docker & Docker Compose
-- **CI/CD**: GitHub Actions or GitLab CI
-- **Platform**: VPS (e.g., DigitalOcean, AWS EC2) or PaaS (e.g., Railway, Heroku)
+- **CI/CD**: GitHub Actions 
+- **Platform**: PaaS (Render)
 
 ## System Architecture & User Roles
 
