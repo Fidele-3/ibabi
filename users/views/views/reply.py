@@ -11,16 +11,15 @@ from users.views.views.inventory import CellResourceRequestSerializer
 
 
 class CellResourceRequestReplySerializer(serializers.ModelSerializer):
-    status = serializers.ChoiceField(
-        choices=[('pending', 'Pending'), ('approved', 'Approved'), ('rejected', 'Rejected'), ('delivered', 'Delivered')]
-    )
+
     product_name = serializers.CharField(source='product.name', read_only=True)
     cell_name = serializers.CharField(source='cell.name', read_only=True)
     requester_name = serializers.CharField(source='cell.cell_officer.get_full_name', read_only=True)
+    comment = serializers.CharField(allow_blank=True, required=False)
 
     class Meta:
         model = CellResourceRequest
-        fields = ['id', 'status', 'comment', 'product_name', 'cell_name', 'requester_name']
+        fields = ['id', 'status', 'comment', 'product_name', 'cell_name', 'requester_name', 'status']
         read_only_fields = ['id', 'product_name', 'cell_name', 'requester_name']
 
     def validate(self, data):
