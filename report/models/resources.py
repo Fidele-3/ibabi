@@ -151,10 +151,14 @@ class CellResourceRequest(models.Model):
     comment = models.TextField(blank=True, null=True)
 
     def clean(self):
-        # Validation rules enforcing requested limits
+    # Validation rules enforcing requested limits
         lands = self.cell.land_set.filter(owner__isnull=False)
         total_hectares = sum([land.size_hectares for land in lands if land.size_hectares])
         requested_qty = self.quantity_requested or Decimal(0)
+
+        # ✅ Skip all validations if total land < 100
+        if total_hectares < 1000:
+            return  
 
         recommended = RecommendedQuantity.objects.filter(
             product=self.product,
