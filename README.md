@@ -117,3 +117,4 @@ The platform operates on a hierarchical model based on Rwanda's administrative s
  - Bizimana Ibrahim  ---------> AI engineer
  - Giraneza Fiston  -----------> UX/UI Engineer
 
+![Project Architecture](image/diagram.jpg)
