@@ -43,7 +43,7 @@ This system enables farmers to request resources, report issues, submit concerns
 ### Frontend
 - **Framework**: Next.js 16 (App Router)
 - **Language**: TypeScript
-- **UI Library**: React with Shadcn/UI or similar component library
+- **UI Library**: React with Shadcn/UI 
 - **State Management**: React Query / TanStack Query & Zustand
 - **Charting**: Chart.js
 - **PWA**: Next-PWA
@@ -92,21 +92,22 @@ The platform operates on a hierarchical model based on Rwanda's administrative s
     - Provides expert advice and solutions.
 
 5.  **Farmer (Citizen)**
-    - Self-registers on the platform via OTP.
+    - Self-registers on the platform and loggs in via  OTP.
     - Can register multiple plots of land and livestock.
-    - Submits requests and reports visible to their local Cell Officer.
+    - Submits requests and reports visible to their local Cell Officer,District officer and also the whole project Super admin.
 
-## Deployed links**
-  - https://ibabi.vercel.app/  
+## Deployed links
+  - https://ibabi.vercel.app/ 
+  (Access the fully app features their on the link. USSD is still in process but its features are alread in place and architecture is well designed for it.) 
 
 ## SUPER ADMIN LOGIN CREDENTIALS
   - **EMAIL**: fidelensanze100@example.com
   - **PASSWORD** : Citizen123!
   - **OTP**: reach out to us at +250786161794, or **email**: fidelensanzumuhire9@gmail.com so that we can give you the OTP after successfully logging in with email and password
 
-## You can create as many citizen users as you want,and logging in as well. 
+ **You can create as many citizen users as you want, and logging in as well**. remember to ask the otp on the provided phone, whatsapp or even on email after successfully loging.
 
-## Creading admin users( district officer, cell officer, teachnicians must be followed as the rules we stated describes. see the info above for more clarities and how those users can be created as well.)
+## Creating admin users( district officer, cell officer, teachnicians must be followed as the rules we stated describes. See the info above for more clarities and how those users can be created as well.)
 
 
 ## TEAM MEMBERS:
