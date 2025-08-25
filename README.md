@@ -1,6 +1,6 @@
 # IBABI Platform - Digital Agricultural Management System
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+**CLICK TO SEE THE PROJECT LICENSE**: [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 
 ## Overview
