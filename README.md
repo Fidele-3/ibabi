@@ -1,6 +1,7 @@
 # IBABI Platform - Digital Agricultural Management System
 
-![IBABI Platform]
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 
 ## Overview
 
@@ -120,3 +121,7 @@ The platform operates on a hierarchical model based on Rwanda's administrative s
 
 ## PROJECT ARCHITECTURE
 ![Project Architecture](image/diagram.jpg)
+
+
+## License
+This project is licensed under the [MIT License](LICENSE).
