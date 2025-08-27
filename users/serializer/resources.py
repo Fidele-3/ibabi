@@ -98,6 +98,9 @@ class ResourceRequestSerializer(serializers.ModelSerializer):
     sector_name = serializers.CharField(source='land.sector.name', read_only=True)
     district_name = serializers.CharField(source='land.district.name', read_only=True)
     province_name = serializers.CharField(source='land.province.name', read_only=True)
+    village_name = serializers.CharField(source='land.village.name', read_only=True)
+    village = serializers.CharField(source='land.village', read_only=True)
+    cell_id = serializers.CharField(source='land.cell.id', read_only=True)
 
     warnings = serializers.ListField(child=serializers.CharField(), read_only=True)
 
@@ -107,7 +110,7 @@ class ResourceRequestSerializer(serializers.ModelSerializer):
             "id", "farmer", "land", "livestock", "product", "quantity_requested",
             "price_per_unit", "total_price", "status", "request_date",
             "approved_by", "delivery_date", "farmer_name", "product_name",
-            "phone_number", "comment", "approved_admin", "warnings", "land_size", "land_upi", "cell", "sector", "district", "province", "cell_name", "sector_name", "district_name", "province_name"
+            "phone_number", "comment", "approved_admin", "warnings", "land_size", "land_upi", "cell", "sector", "district", "province", "cell_name", "sector_name", "district_name", "province_name", "cell_id", "village", "village_name"
         ]
         read_only_fields = [
             "id", "price_per_unit", "total_price", "status", "request_date",
@@ -382,6 +385,7 @@ class ResourceRequestStatusUpdateSerializer(serializers.Serializer):
 class ResourceRequestDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = ResourceRequest
+        cell_id = serializers.CharField(source='land.cell.id', read_only=True)
         fields = [
             "id",
             "land",
@@ -394,6 +398,9 @@ class ResourceRequestDetailSerializer(serializers.ModelSerializer):
             "approved_by",
             "delivery_date",
             "comment",
+            "cell_id",
+
+
         ]
         read_only_fields = fields  # this serializer is for read-only output
 
