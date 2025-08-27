@@ -383,9 +383,10 @@ class ResourceRequestStatusUpdateSerializer(serializers.Serializer):
 
         return request_obj
 class ResourceRequestDetailSerializer(serializers.ModelSerializer):
+    cell_id = serializers.IntegerField(source='land.cell.id', read_only=True)
+
     class Meta:
         model = ResourceRequest
-        cell_id = serializers.CharField(source='land.cell.id', read_only=True)
         fields = [
             "id",
             "land",
@@ -399,10 +400,8 @@ class ResourceRequestDetailSerializer(serializers.ModelSerializer):
             "delivery_date",
             "comment",
             "cell_id",
-
-
         ]
-        read_only_fields = fields  # this serializer is for read-only output
+        read_only_fields = fields  # keep it read-only
 
 
 
