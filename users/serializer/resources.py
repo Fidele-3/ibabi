@@ -90,6 +90,14 @@ class ResourceRequestSerializer(serializers.ModelSerializer):
     approved_admin = serializers.CharField(source='approved_by.get_full_name', read_only=True)
     land_size = serializers.CharField(source='land.size_hectares', read_only=True)
     land_upi = serializers.CharField(source='land.upi', read_only=True)
+    cell = serializers.CharField(source='land.cell', read_only=True)
+    sector = serializers.CharField(source='land.sector', read_only=True)
+    district = serializers.CharField(source='land.district', read_only=True)
+    province = serializers.CharField(source='land.province', read_only=True)
+    cell_name = serializers.CharField(source='land.cell.name', read_only=True)
+    sector_name = serializers.CharField(source='land.sector.name', read_only=True)
+    district_name = serializers.CharField(source='land.district.name', read_only=True)
+    province_name = serializers.CharField(source='land.province.name', read_only=True)
 
     warnings = serializers.ListField(child=serializers.CharField(), read_only=True)
 
