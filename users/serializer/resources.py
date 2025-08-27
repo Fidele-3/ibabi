@@ -107,7 +107,7 @@ class ResourceRequestSerializer(serializers.ModelSerializer):
             "id", "farmer", "land", "livestock", "product", "quantity_requested",
             "price_per_unit", "total_price", "status", "request_date",
             "approved_by", "delivery_date", "farmer_name", "product_name",
-            "phone_number", "comment", "approved_admin", "warnings", "land_size", "land_upi"
+            "phone_number", "comment", "approved_admin", "warnings", "land_size", "land_upi", "cell", "sector", "district", "province", "cell_name", "sector_name", "district_name", "province_name"
         ]
         read_only_fields = [
             "id", "price_per_unit", "total_price", "status", "request_date",
