@@ -26,7 +26,6 @@ def send_account_created_email(self, user_id):
         # === In-App Notification ===
         Notification.objects.create(
             recipient=user,
-            sector=None,
             triggered_by=None,
             notification_type="in_app",
             subject=subject,
@@ -53,7 +52,6 @@ def send_account_created_email(self, user_id):
         # Save email notification record
         email_notif = Notification.objects.create(
             recipient=user,
-            sector=None,
             triggered_by=None,
             notification_type="email",
             subject=subject,
